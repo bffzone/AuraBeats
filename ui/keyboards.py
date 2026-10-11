@@ -1,74 +1,89 @@
-"""AuraBeats - Inline Keyboards"""
+"""AuraBeats - Inline Keyboards (Compact)"""
 from pyrogram.types import InlineKeyboardMarkup
 from ui.buttons import btn
 
 
 def player_keyboard() -> InlineKeyboardMarkup:
+    """Main player - only 4 buttons + More"""
     return InlineKeyboardMarkup([
         [
-            btn("⏸️", "pause"),
-            btn("⏭️", "skip"),
-            btn("⏹️", "stop"),
-            btn("🔀", "shuffle"),
+            btn("⏯️", "cb_pause_resume"),
+            btn("⏭️", "cb_skip"),
+            btn("⏹️", "cb_stop"),
+            btn("🔀", "cb_shuffle"),
         ],
         [
-            btn("🔊 Vol+", "vol_up"),
-            btn("🔉 Vol-", "vol_down"),
-            btn("🔁 Loop", "loop"),
-            btn("📋 Queue", "queue"),
+            btn("📋 Queue", "cb_queue"),
+            btn("🎛️ Filters", "cb_filters_menu"),
+            btn("🔊 Volume", "cb_volume_menu"),
+            btn("⋯ More", "cb_more_menu"),
+        ],
+    ])
+
+
+def more_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [
+            btn("📜 Lyrics", "cb_lyrics"),
+            btn("❤️ Save", "cb_save"),
         ],
         [
-            btn("🎸 Bass", "f_bass"),
-            btn("🌙 Night", "f_nightcore"),
-            btn("🎧 8D", "f_8d"),
-            btn("🎤 Karaoke", "f_karaoke"),
+            btn("🔁 Loop", "cb_loop"),
+            btn("⚡ Speed", "cb_speed"),
         ],
         [
-            btn("📜 Lyrics", "lyrics"),
-            btn("❤️ Save", "save"),
-            btn("🎛️ Filters", "filters"),
-            btn("❌ Close", "close"),
+            btn("📊 Stats", "cb_stats"),
+            btn("ℹ️ Info", "cb_info"),
         ],
+        [btn("⬅️ Back", "cb_back_player")],
+    ])
+
+
+def filters_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [
+            btn("🎸 Bass", "cb_f_bass"),
+            btn("🎼 Treble", "cb_f_treble"),
+        ],
+        [
+            btn("🌙 Nightcore", "cb_f_nightcore"),
+            btn("🌊 Vaporwave", "cb_f_vaporwave"),
+        ],
+        [
+            btn("🎧 8D", "cb_f_8d"),
+            btn("🎤 Karaoke", "cb_f_karaoke"),
+        ],
+        [
+            btn("🏛️ Reverb", "cb_f_reverb"),
+            btn("❌ Clear", "cb_f_clear"),
+        ],
+        [btn("⬅️ Back", "cb_back_player")],
+    ])
+
+
+def volume_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [
+            btn("🔉 -10", "cb_vol_down"),
+            btn("🔊 +10", "cb_vol_up"),
+        ],
+        [
+            btn("🔇 Mute", "cb_vol_mute"),
+            btn("🔊 Max", "cb_vol_max"),
+        ],
+        [btn("⬅️ Back", "cb_back_player")],
     ])
 
 
 def queue_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [
-            btn("🔼 Move Up", "q_up"),
-            btn("🔽 Move Down", "q_down"),
-            btn("🗑️ Remove", "q_remove"),
+            btn("🔄 Refresh", "cb_queue"),
+            btn("🔀 Shuffle", "cb_shuffle"),
         ],
         [
-            btn("🔀 Shuffle", "q_shuffle"),
-            btn("🗑️ Clear All", "q_clear"),
-            btn("🔄 Refresh", "q_refresh"),
-        ],
-        [btn("⬅️ Back", "close")],
-    ])
-
-
-def filters_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([
-        [
-            btn("🎸 Bass", "f_bass"),
-            btn("🎼 Treble", "f_treble"),
-            btn("🎙️ Vocal", "f_vocal"),
-        ],
-        [
-            btn("🌙 Nightcore", "f_nightcore"),
-            btn("🌊 Vaporwave", "f_vaporwave"),
-            btn("🎧 8D", "f_8d"),
-        ],
-        [
-            btn("🎤 Karaoke", "f_karaoke"),
-            btn("🔊 Echo", "f_echo"),
-            btn("🏛️ Reverb", "f_reverb"),
-        ],
-        [
-            btn("🎚️ EQ", "f_eq"),
-            btn("❌ Clear", "f_clear"),
-            btn("⬅️ Back", "close"),
+            btn("🗑️ Clear", "cb_clear_queue"),
+            btn("❌ Close", "cb_close"),
         ],
     ])
 
@@ -76,47 +91,25 @@ def filters_keyboard() -> InlineKeyboardMarkup:
 def settings_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [
-            btn("🌍 Language", "set_lang"),
-            btn("🎨 Theme", "set_theme"),
+            btn("🌍 Language", "cb_set_lang"),
+            btn("🎨 Theme", "cb_set_theme"),
         ],
         [
-            btn("🎵 Quality", "set_quality"),
-            btn("🔔 Notify", "set_notify"),
+            btn("🎵 Quality", "cb_set_quality"),
+            btn("🔔 Notify", "cb_set_notify"),
         ],
-        [
-            btn("💾 Data Saver", "set_datasave"),
-            btn("🌙 Silent", "set_silent"),
-        ],
-        [btn("❌ Close", "close")],
+        [btn("❌ Close", "cb_close")],
     ])
 
 
-def admin_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([
-        [
-            btn("📊 Stats", "adm_stats"),
-            btn("👥 Users", "adm_users"),
-        ],
-        [
-            btn("📢 Broadcast", "adm_broadcast"),
-            btn("🚫 Ban", "adm_ban"),
-        ],
-        [
-            btn("🔧 Maintain", "adm_maint"),
-            btn("♻️ Reload", "adm_reload"),
-        ],
-        [btn("❌ Close", "close")],
-    ])
+def close_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[btn("❌ Close", "cb_close")]])
 
 
 def confirm_keyboard(action: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [
             btn("✅ Yes", f"confirm_{action}"),
-            btn("❌ No", "cancel"),
+            btn("❌ No", "cb_close"),
         ]
     ])
-
-
-def close_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[btn("❌ Close", "close")]])

@@ -2,7 +2,7 @@
 import time
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.enums import ParseMode
+from pyrogram.enums import ParseMode, LinkPreviewOptions
 from config import config, AUTHOR_TG_LINK
 from ui.cards import start_card, help_card
 from ui.keyboards import close_keyboard
@@ -19,20 +19,11 @@ def _start_kb():
         ],
         [
             InlineKeyboardButton("▶️ Play", callback_data="cmd_play"),
-            InlineKeyboardButton("⏸️ Pause", callback_data="cmd_pause"),
-            InlineKeyboardButton("⏭️ Skip", callback_data="cmd_skip"),
-        ],
-        [
-            InlineKeyboardButton("📋 Queue", callback_data="queue"),
-            InlineKeyboardButton("🎛️ Filters", callback_data="filters"),
-        ],
-        [
-            InlineKeyboardButton("⚙️ Settings", callback_data="help_settings"),
-            InlineKeyboardButton("📊 Stats", callback_data="help_stats"),
+            InlineKeyboardButton("⚙️ Settings", callback_data="cmd_settings"),
         ],
         [
             InlineKeyboardButton("👨‍💻 Developer", url=AUTHOR_TG_LINK),
-            InlineKeyboardButton("❌ Close", callback_data="close"),
+            InlineKeyboardButton("❌ Close", callback_data="cb_close"),
         ],
     ])
 
@@ -49,14 +40,17 @@ async def start_cmd(client: Client, message: Message):
     except Exception:
         await message.reply_text(
             text=text, reply_markup=kb, parse_mode=ParseMode.HTML,
+            link_preview_options=LinkPreviewOptions(is_disabled=True),
         )
 
 
 @Client.on_message(filters.command("help"))
 async def help_cmd(client: Client, message: Message):
     await message.reply_text(
-        text=help_card(), reply_markup=close_keyboard(),
+        text=help_card(),
+        reply_markup=close_keyboard(),
         parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
 
 
@@ -66,8 +60,6 @@ async def ping_cmd(client: Client, message: Message):
     msg = await message.reply_text("🏓 Pinging...")
     elapsed = (time.time() - start) * 1000
     await msg.edit_text(
-        f"🏓 <b>Pong!</b>\n\n"
-        f"⚡ Latency: <code>{elapsed:.2f}ms</code>\n"
-        f"👤 User: {message.from_user.mention if message.from_user else '?'}",
+        f"🏓 <b>Pong!</b>  <code>{elapsed:.0f}ms</code>",
         parse_mode=ParseMode.HTML,
     )
