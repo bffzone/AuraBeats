@@ -1,18 +1,16 @@
 # ═══════════════════════════════════════
 #   AuraBeats - Dependencies
+#   Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
 # ═══════════════════════════════════════
 
-# ─── Telegram ───
+# ─── Telegram (Kurigram = Pyrogram ka fork) ───
 kurigram>=2.2.0
+tgcrypto>=1.2.5
 py-tgcalls==1.2.4
 ntgcalls==3.0.2
-tgcrypto>=1.2.5
 
 # ─── Music ───
 yt-dlp>=2024.1.0
-
-# ─── Database ───
-motor>=3.3.0
 
 # ─── Utils ───
 python-dotenv>=1.0.0
