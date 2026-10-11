@@ -1,14 +1,9 @@
-"""
-AuraBeats - Inline Keyboards
-Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
-"""
-
+"""AuraBeats - Inline Keyboards"""
 from pyrogram.types import InlineKeyboardMarkup
-from ui.buttons import btn, btn_url
+from ui.buttons import btn
 
 
 def player_keyboard() -> InlineKeyboardMarkup:
-    """Main music player controls"""
     return InlineKeyboardMarkup([
         [
             btn("⏸️", "pause"),
@@ -38,7 +33,6 @@ def player_keyboard() -> InlineKeyboardMarkup:
 
 
 def queue_keyboard() -> InlineKeyboardMarkup:
-    """Queue management"""
     return InlineKeyboardMarkup([
         [
             btn("🔼 Move Up", "q_up"),
@@ -50,12 +44,11 @@ def queue_keyboard() -> InlineKeyboardMarkup:
             btn("🗑️ Clear All", "q_clear"),
             btn("🔄 Refresh", "q_refresh"),
         ],
-        [btn("⬅️ Back", "back_player")],
+        [btn("⬅️ Back", "close")],
     ])
 
 
 def filters_keyboard() -> InlineKeyboardMarkup:
-    """Audio filters menu"""
     return InlineKeyboardMarkup([
         [
             btn("🎸 Bass", "f_bass"),
@@ -73,15 +66,14 @@ def filters_keyboard() -> InlineKeyboardMarkup:
             btn("🏛️ Reverb", "f_reverb"),
         ],
         [
-            btn("🎚️ EQ Presets", "f_eq"),
-            btn("❌ Clear Filters", "f_clear"),
+            btn("🎚️ EQ", "f_eq"),
+            btn("❌ Clear", "f_clear"),
+            btn("⬅️ Back", "close"),
         ],
-        [btn("⬅️ Back", "back_player")],
     ])
 
 
 def settings_keyboard() -> InlineKeyboardMarkup:
-    """User settings"""
     return InlineKeyboardMarkup([
         [
             btn("🌍 Language", "set_lang"),
@@ -89,18 +81,17 @@ def settings_keyboard() -> InlineKeyboardMarkup:
         ],
         [
             btn("🎵 Quality", "set_quality"),
-            btn("🔔 Notifications", "set_notify"),
+            btn("🔔 Notify", "set_notify"),
         ],
         [
             btn("💾 Data Saver", "set_datasave"),
-            btn("🌙 Silent Mode", "set_silent"),
+            btn("🌙 Silent", "set_silent"),
         ],
         [btn("❌ Close", "close")],
     ])
 
 
 def admin_keyboard() -> InlineKeyboardMarkup:
-    """Admin panel"""
     return InlineKeyboardMarkup([
         [
             btn("📊 Stats", "adm_stats"),
@@ -108,21 +99,17 @@ def admin_keyboard() -> InlineKeyboardMarkup:
         ],
         [
             btn("📢 Broadcast", "adm_broadcast"),
-            btn("🚫 Ban User", "adm_ban"),
+            btn("🚫 Ban", "adm_ban"),
         ],
         [
-            btn("🔧 Maintenance", "adm_maint"),
+            btn("🔧 Maintain", "adm_maint"),
             btn("♻️ Reload", "adm_reload"),
         ],
-        [
-            btn("📥 Backup", "adm_backup"),
-            btn("❌ Close", "close"),
-        ],
+        [btn("❌ Close", "close")],
     ])
 
 
 def confirm_keyboard(action: str) -> InlineKeyboardMarkup:
-    """Yes/No confirmation"""
     return InlineKeyboardMarkup([
         [
             btn("✅ Yes", f"confirm_{action}"),
@@ -132,5 +119,4 @@ def confirm_keyboard(action: str) -> InlineKeyboardMarkup:
 
 
 def close_keyboard() -> InlineKeyboardMarkup:
-    """Simple close button"""
     return InlineKeyboardMarkup([[btn("❌ Close", "close")]])

@@ -1,19 +1,12 @@
-"""
-AuraBeats - /start, /help, /ping
-Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
-"""
-
+"""AuraBeats - /start, /help, /ping"""
 import time
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ParseMode
-
-from config import config, AUTHOR_TG_LINK, AUTHOR_NAME, AUTHOR_USERNAME
+from config import config, AUTHOR_TG_LINK
 from ui.cards import start_card, help_card
 from ui.keyboards import close_keyboard
 
-
-# Bot logo URL (raw GitHub file)
 LOGO_URL = "https://raw.githubusercontent.com/SakilSakil699/AuraBeats/main/assets/images/logo.png"
 
 
@@ -25,7 +18,12 @@ def _start_kb():
             InlineKeyboardButton("📖 Help", callback_data="help_menu"),
         ],
         [
-            InlineKeyboardButton("🎵 Play", callback_data="help_play"),
+            InlineKeyboardButton("▶️ Play", callback_data="cmd_play"),
+            InlineKeyboardButton("⏸️ Pause", callback_data="cmd_pause"),
+            InlineKeyboardButton("⏭️ Skip", callback_data="cmd_skip"),
+        ],
+        [
+            InlineKeyboardButton("📋 Queue", callback_data="queue"),
             InlineKeyboardButton("🎛️ Filters", callback_data="filters"),
         ],
         [
@@ -43,29 +41,21 @@ def _start_kb():
 async def start_cmd(client: Client, message: Message):
     text = start_card(message.from_user.first_name if message.from_user else "User")
     kb = _start_kb()
-
-    # Try to send with photo, fallback to text if photo fails
     try:
         await message.reply_photo(
-            photo=LOGO_URL,
-            caption=text,
-            reply_markup=kb,
-            parse_mode=ParseMode.HTML,
+            photo=LOGO_URL, caption=text,
+            reply_markup=kb, parse_mode=ParseMode.HTML,
         )
-    except Exception as e:
-        # Fallback: text only
+    except Exception:
         await message.reply_text(
-            text=text,
-            reply_markup=kb,
-            parse_mode=ParseMode.HTML,
+            text=text, reply_markup=kb, parse_mode=ParseMode.HTML,
         )
 
 
 @Client.on_message(filters.command("help"))
 async def help_cmd(client: Client, message: Message):
     await message.reply_text(
-        text=help_card(),
-        reply_markup=close_keyboard(),
+        text=help_card(), reply_markup=close_keyboard(),
         parse_mode=ParseMode.HTML,
     )
 

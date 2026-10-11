@@ -1,16 +1,11 @@
-"""
-AuraBeats - Queue commands
-Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
-"""
-
+"""AuraBeats - Queue commands"""
 from pyrogram import Client, filters
 from pyrogram.types import Message, CallbackQuery
-
+from pyrogram.enums import ParseMode
 from config import config
 from services import queue_manager
-from ui.cards import queue_card, error_card, success_card
+from ui.cards import queue_card, success_card
 from ui.keyboards import queue_keyboard
-
 
 PREFIXES = [config.PREFIX, "/", "!"]
 
@@ -25,18 +20,15 @@ async def queue_cmd(client: Client, message: Message):
             if t.get("url") == current.get("url"):
                 cur_idx = i
                 break
-    
     await message.reply_text(
-        queue_card(q, cur_idx),
-        reply_markup=queue_keyboard(),
-        disable_web_page_preview=True,
+        queue_card(q, cur_idx), reply_markup=queue_keyboard(), parse_mode=ParseMode.HTML,
     )
 
 
 @Client.on_message(filters.command("shuffle", prefixes=PREFIXES) & ~filters.private)
 async def shuffle_cmd(client: Client, message: Message):
     queue_manager.shuffle_queue(message.chat.id)
-    await message.reply_text(success_card("🔀 Queue shuffled"))
+    await message.reply_text(success_card("🔀 Queue shuffled"), parse_mode=ParseMode.HTML)
 
 
 @Client.on_message(filters.command("loop", prefixes=PREFIXES) & ~filters.private)
@@ -45,26 +37,25 @@ async def loop_cmd(client: Client, message: Message):
     new_mode = (current + 1) % 3
     queue_manager.set_loop_mode(message.chat.id, new_mode)
     labels = {0: "Off", 1: "Single", 2: "Queue"}
-    await message.reply_text(success_card(f"🔁 Loop: **{labels[new_mode]}**"))
+    await message.reply_text(
+        success_card(f"🔁 Loop: <b>{labels[new_mode]}</b>"),
+        parse_mode=ParseMode.HTML,
+    )
 
 
 @Client.on_message(filters.command("clear", prefixes=PREFIXES) & ~filters.private)
 async def clear_cmd(client: Client, message: Message):
     await queue_manager.clear_queue(message.chat.id)
-    await message.reply_text(success_card("🗑️ Queue cleared"))
+    await message.reply_text(success_card("🗑️ Queue cleared"), parse_mode=ParseMode.HTML)
 
 
-# ═══════════════════════════════════════
-#   CALLBACKS
-# ═══════════════════════════════════════
 @Client.on_callback_query(filters.regex("^queue$"))
 async def cb_queue(client: Client, query: CallbackQuery):
     q = await queue_manager.get_queue(query.message.chat.id)
     await query.message.edit_text(
-        queue_card(q),
-        reply_markup=queue_keyboard(),
-        disable_web_page_preview=True,
+        queue_card(q), reply_markup=queue_keyboard(), parse_mode=ParseMode.HTML,
     )
+    await query.answer()
 
 
 @Client.on_callback_query(filters.regex("^shuffle$"))

@@ -1,14 +1,8 @@
-"""
-AuraBeats - Queue Manager
-Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
-"""
-
+"""AuraBeats - Queue Manager"""
 from typing import Optional, List
 from core import db, logger
 from config import config, QueueFull
 
-
-# In-memory queues per chat (fast access)
 _queues: dict = {}
 _current: dict = {}
 _loop_mode: dict = {}
@@ -21,18 +15,14 @@ def _get(chat_id: int) -> list:
 
 
 def _calls():
-    """Lazy get calls_manager"""
     from core import get_calls_manager
     return get_calls_manager()
 
 
 async def add_to_queue(chat_id: int, track: dict, user_id: int = 0, user_name: str = "") -> int:
-    """Add track to queue, returns position"""
     q = _get(chat_id)
-
     if len(q) >= config.MAX_QUEUE_SIZE:
         raise QueueFull(f"Queue full (max {config.MAX_QUEUE_SIZE})")
-
     item = {
         "title": track.get("title", "Unknown"),
         "url": track.get("url", ""),
@@ -44,13 +34,11 @@ async def add_to_queue(chat_id: int, track: dict, user_id: int = 0, user_name: s
         "requested_by_name": user_name,
     }
     q.append(item)
-
     await db.save_queue(chat_id, q)
     return len(q) - 1
 
 
 async def get_queue(chat_id: int) -> List[dict]:
-    """Get current queue"""
     q = _get(chat_id)
     if not q:
         saved = await db.get_queue(chat_id)
@@ -61,7 +49,6 @@ async def get_queue(chat_id: int) -> List[dict]:
 
 
 async def clear_queue(chat_id: int):
-    """Clear queue"""
     _queues[chat_id] = []
     _current.pop(chat_id, None)
     await db.clear_queue(chat_id)
@@ -76,12 +63,9 @@ async def set_current(chat_id: int, track: dict):
 
 
 async def play_next(chat_id: int) -> bool:
-    """Play next track from queue"""
     q = _get(chat_id)
     if not q:
-        logger.debug(f"Queue empty for {chat_id}")
         return False
-
     loop = _loop_mode.get(chat_id, 0)
     if loop == 1 and _current.get(chat_id):
         track = _current[chat_id]
@@ -89,22 +73,20 @@ async def play_next(chat_id: int) -> bool:
         track = q.pop(0)
         _current[chat_id] = track
         await db.save_queue(chat_id, q)
-
     try:
         from services.downloader import get_stream_url
         stream_url = get_stream_url(track["url"])
     except Exception as e:
-        logger.error(f"Failed to get stream: {e}")
+        logger.error(f"Stream: {e}")
         return await play_next(chat_id)
-
     try:
         calls_manager = _calls()
         await calls_manager.play(chat_id, stream_url)
-        logger.info(f"▶️ Playing in {chat_id}: {track['title'][:40]}")
+        logger.info(f"Playing: {track['title'][:40]}")
         await db.increment_stat("songs_played")
         return True
     except Exception as e:
-        logger.error(f"Play failed: {e}")
+        logger.error(f"Play: {e}")
         return False
 
 
@@ -136,12 +118,3 @@ def remove_from_queue(chat_id: int, index: int) -> bool:
         q.pop(index)
         return True
     return False
-
-
-def move_in_queue(chat_id: int, from_idx: int, to_idx: int) -> bool:
-    q = _get(chat_id)
-    if not (0 <= from_idx < len(q) and 0 <= to_idx < len(q)):
-        return False
-    item = q.pop(from_idx)
-    q.insert(to_idx, item)
-    return True

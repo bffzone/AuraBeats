@@ -1,19 +1,12 @@
-"""
-AuraBeats - Voice Chat Engine (PyTgCalls)
-Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
-"""
-
+"""AuraBeats - Voice Chat Engine"""
 from typing import Optional
 from pyrogram import Client
 from pytgcalls import PyTgCalls
 from pytgcalls.types import Update
-
 from config import logger, WATERMARK
 
 
 class CallsManager:
-    """Wrapper around PyTgCalls"""
-
     def __init__(self):
         self.calls: Optional[PyTgCalls] = None
         self.assistant: Optional[Client] = None
@@ -21,11 +14,9 @@ class CallsManager:
         self.active_chats: set = set()
 
     async def initialize(self, assistant: Client):
-        """Initialize PyTgCalls with the assistant client"""
         self.assistant = assistant
         self.calls = PyTgCalls(assistant)
 
-        # Register event handlers
         @self.calls.on_update()
         async def _on_update(_, update: Update):
             await self._handle_update(update)
@@ -34,25 +25,19 @@ class CallsManager:
         logger.debug(f"[{WATERMARK}] Voice engine ready")
 
     async def _handle_update(self, update: Update):
-        """Handle voice chat updates"""
         try:
             if update.__class__.__name__ == "StreamEnd":
                 chat_id = update.chat_id
                 self.active_chats.discard(chat_id)
-                logger.info(f"🎵 Stream ended in {chat_id}")
-
-                # Auto-play next song from queue
                 try:
                     from services.queue_manager import play_next
                     await play_next(chat_id)
                 except Exception as e:
-                    logger.debug(f"Auto-next failed: {e}")
-
+                    logger.debug(f"Auto-next: {e}")
         except Exception as e:
-            logger.error(f"Update handler error: {e}")
+            logger.error(f"Update handler: {e}")
 
     async def play(self, chat_id: int, stream_url: str):
-        """Play audio stream in chat"""
         await self.calls.play(chat_id, stream_url)
         self.active_chats.add(chat_id)
 
@@ -62,12 +47,13 @@ class CallsManager:
     async def resume(self, chat_id: int):
         await self.calls.resume_stream(chat_id)
 
-    async def stop(self, chat_id: int):
-        try:
-            await self.calls.leave_group_call(chat_id)
-            self.active_chats.discard(chat_id)
-        except Exception as e:
-            logger.debug(f"stop stream: {e}")
+    async def stop(self, chat_id: int = None):
+        if chat_id:
+            try:
+                await self.calls.leave_group_call(chat_id)
+                self.active_chats.discard(chat_id)
+            except Exception as e:
+                logger.debug(f"stop stream: {e}")
 
     async def stop_all(self):
         for chat_id in list(self.active_chats):
@@ -75,8 +61,11 @@ class CallsManager:
 
     async def stop_engine(self):
         if self.calls:
-            await self.calls.stop()
+            try:
+                await self.calls.stop()
+                self.active_chats.clear()
+            except Exception as e:
+                logger.debug(f"Engine stop: {e}")
 
 
-# Singleton
 calls_manager = CallsManager()

@@ -1,23 +1,19 @@
-"""
-AuraBeats - Message Cards (HTML formatted)
-Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
-"""
-
+"""AuraBeats - Message Cards"""
 from config import config, AUTHOR_NAME, AUTHOR_USERNAME, AUTHOR_TG_LINK
 from ui.progress import progress_text, volume_text
 from utils import format_duration, truncate
 
 
-def now_playing_card(
-    title: str,
-    artist: str = "Unknown",
-    duration: int = 0,
-    position: int = 0,
-    volume: int = 80,
-    loop_mode: str = "Off",
-    filter_name: str = "None",
-    requested_by: str = "",
-) -> str:
+def _credit_footer() -> str:
+    return (
+        f"\n\n━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👨‍💻 <b>Made By</b> <a href=\"{AUTHOR_TG_LINK}\">{AUTHOR_NAME}</a>\n"
+        f"📱 <a href=\"{AUTHOR_TG_LINK}\">@{AUTHOR_USERNAME}</a>"
+    )
+
+
+def now_playing_card(title, artist="Unknown", duration=0, position=0,
+                     volume=80, loop_mode="Off", filter_name="None", requested_by=""):
     bar = progress_text(position, duration)
     card = (
         f"╭────────────────────────────╮\n"
@@ -32,16 +28,7 @@ def now_playing_card(
     )
     if requested_by:
         card += f"\n👤 <b>Requested by:</b> {requested_by}"
-    card += _credit_footer()
-    return card
-
-
-def _credit_footer() -> str:
-    return (
-        f"\n\n━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"👨‍💻 <b>Made By</b> <a href=\"{AUTHOR_TG_LINK}\">{AUTHOR_NAME}</a>\n"
-        f"📱 <a href=\"{AUTHOR_TG_LINK}\">@{AUTHOR_USERNAME}</a>"
-    )
+    return card + _credit_footer()
 
 
 def queue_card(queue: list, current: int = 0) -> str:
@@ -49,8 +36,7 @@ def queue_card(queue: list, current: int = 0) -> str:
         return (
             f"📭 <b>Queue khaali hai</b>\n\n"
             f"Koi gaana add karne ke liye "
-            f"<code>/play &lt;song&gt;</code> bhejo."
-            + _credit_footer()
+            f"<code>/play &lt;song&gt;</code> bhejo." + _credit_footer()
         )
     lines = [f"📋 <b>Queue</b> ({len(queue)} songs)\n"]
     for i, track in enumerate(queue[:10]):
@@ -79,8 +65,7 @@ def start_card(first_name: str = "User") -> str:
         f"• <code>/play &lt;song&gt;</code> — Music play karo\n"
         f"• <code>/help</code> — Saare commands dekho\n"
         f"• <code>/settings</code> — Customize karo\n\n"
-        f"Use <code>/help</code> for all commands."
-        + _credit_footer()
+        f"Use <code>/help</code> for all commands." + _credit_footer()
     )
 
 
@@ -117,14 +102,7 @@ def success_card(message: str) -> str:
     return f"✅ <b>Success</b>\n\n{message}"
 
 
-def stats_card(
-    total_users: int = 0,
-    total_chats: int = 0,
-    total_songs: int = 0,
-    uptime: str = "0s",
-    cpu: str = "0%",
-    ram: str = "0%",
-) -> str:
+def stats_card(total_users=0, total_chats=0, total_songs=0, uptime="0s", cpu="0%", ram="0%"):
     return (
         f"╭───────────────────────────╮\n"
         f"│  📊 <b>{config.BOT_NAME} Stats</b>\n"
@@ -134,8 +112,7 @@ def stats_card(
         f"🎵 <b>Songs Played:</b> <code>{total_songs:,}</code>\n"
         f"⏱️ <b>Uptime:</b> <code>{uptime}</code>\n\n"
         f"💻 <b>CPU:</b> <code>{cpu}</code>\n"
-        f"🧠 <b>RAM:</b> <code>{ram}</code>"
-        + _credit_footer()
+        f"🧠 <b>RAM:</b> <code>{ram}</code>" + _credit_footer()
     )
 
 
