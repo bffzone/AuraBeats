@@ -14,7 +14,6 @@ def now_playing_card(title, artist="Unknown", duration=0, position=0,
     tot = format_duration(duration)
     bar = progress_bar(position, duration, 10)
     req = f" | 👤 {truncate(requested_by, 15)}" if requested_by else ""
-
     return (
         f"🎶 <b>Now Playing</b>\n\n"
         f"🎵 <b>{truncate(title, 40)}</b>\n"
@@ -29,17 +28,14 @@ def now_playing_card(title, artist="Unknown", duration=0, position=0,
 def queue_card(queue: list, current: int = 0) -> str:
     if not queue:
         return f"📭 <b>Queue is empty</b>\n\nUse <code>/play &lt;song&gt;</code> to add songs." + _credit()
-
     lines = [f"📋 <b>Queue</b> • {len(queue)} songs\n"]
     for i, track in enumerate(queue[:5]):
         title = truncate(track.get("title", "Unknown"), 38)
         dur = format_duration(track.get("duration", 0))
         icon = "▶️" if i == current else f"<code>{i + 1}.</code>"
         lines.append(f"{icon} {title}  <code>{dur}</code>")
-
     if len(queue) > 5:
         lines.append(f"\n<i>+ {len(queue) - 5} more...</i>")
-
     return "\n".join(lines) + _credit()
 
 
