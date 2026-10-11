@@ -1,7 +1,6 @@
 """
 AuraBeats - Config Package
-Author: Sakil Anowar
-Telegram: @YO_UR_OFFICIAL_CRUSH
+Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
 """
 
 from config.settings import config, Config
@@ -33,8 +32,16 @@ from config.exceptions import (
     ConfigError,
     DatabaseError,
     MusicError,
+    SearchError,
+    DownloadError,
+    StreamError,
     VoiceChatError,
+    NoActiveChat,
+    AlreadyInChat,
     QueueError,
+    QueueFull,
+    PermissionError,
+    RateLimitError,
 )
 
 __all__ = [
@@ -67,6 +74,14 @@ __all__ = [
     "ConfigError",
     "DatabaseError",
     "MusicError",
+    "SearchError",
+    "DownloadError",
+    "StreamError",
     "VoiceChatError",
+    "NoActiveChat",
+    "AlreadyInChat",
     "QueueError",
+    "QueueFull",
+    "PermissionError",
+    "RateLimitError",
 ]
