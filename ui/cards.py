@@ -1,14 +1,9 @@
 """
-AuraBeats - Message Cards
+AuraBeats - Message Cards (HTML formatted)
 Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
 """
 
-from config import (
-    config,
-    VISIBLE_CREDIT,
-    CREDIT_FOOTER,
-    SHORT_CREDIT,
-)
+from config import config, AUTHOR_NAME, AUTHOR_USERNAME, AUTHOR_TG_LINK
 from ui.progress import progress_text, volume_text
 from utils import format_duration, truncate
 
@@ -23,102 +18,103 @@ def now_playing_card(
     filter_name: str = "None",
     requested_by: str = "",
 ) -> str:
-    """Now playing message card"""
     bar = progress_text(position, duration)
-    
     card = (
         f"╭────────────────────────────╮\n"
-        f"│  🎵 **{truncate(title, 25)}**\n"
+        f"│  🎵 <b>{truncate(title, 25)}</b>\n"
         f"│  👤 {truncate(artist, 22)}\n"
         f"│  ⏱️ {format_duration(duration)}\n"
         f"╰────────────────────────────╯\n\n"
         f"{bar}\n\n"
         f"{volume_text(volume)}\n"
-        f"🔁 **Loop:** `{loop_mode}`\n"
-        f"🎸 **Filter:** `{filter_name}`"
+        f"🔁 <b>Loop:</b> <code>{loop_mode}</code>\n"
+        f"🎸 <b>Filter:</b> <code>{filter_name}</code>"
     )
-    
     if requested_by:
-        card += f"\n👤 **Requested by:** {requested_by}"
-    
-    card += CREDIT_FOOTER
+        card += f"\n👤 <b>Requested by:</b> {requested_by}"
+    card += _credit_footer()
     return card
 
 
+def _credit_footer() -> str:
+    return (
+        f"\n\n━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👨‍💻 <b>Made By</b> <a href=\"{AUTHOR_TG_LINK}\">{AUTHOR_NAME}</a>\n"
+        f"📱 <a href=\"{AUTHOR_TG_LINK}\">@{AUTHOR_USERNAME}</a>"
+    )
+
+
 def queue_card(queue: list, current: int = 0) -> str:
-    """Queue display card"""
     if not queue:
         return (
-            f"📭 **Queue khaali hai**\n\n"
-            f"Koi gaana add karne ke liye `/play <song>` bhejo."
-            f"{CREDIT_FOOTER}"
+            f"📭 <b>Queue khaali hai</b>\n\n"
+            f"Koi gaana add karne ke liye "
+            f"<code>/play &lt;song&gt;</code> bhejo."
+            + _credit_footer()
         )
-    
-    lines = [f"📋 **Queue** ({len(queue)} songs)\n"]
-    
+    lines = [f"📋 <b>Queue</b> ({len(queue)} songs)\n"]
     for i, track in enumerate(queue[:10]):
         title = truncate(track.get("title", "Unknown"), 32)
         duration = format_duration(track.get("duration", 0))
-        prefix = "▶️" if i == current else f"`{i + 1}.`"
-        lines.append(f"{prefix} {title}\n    ⏱️ `{duration}`")
-    
+        prefix = "▶️" if i == current else f"<code>{i + 1}.</code>"
+        lines.append(f"{prefix} {title}\n    ⏱️ <code>{duration}</code>")
     if len(queue) > 10:
-        lines.append(f"\n_...aur {len(queue) - 10} songs_")
-    
-    return "\n".join(lines) + CREDIT_FOOTER
+        lines.append(f"\n<i>...aur {len(queue) - 10} songs</i>")
+    return "\n".join(lines) + _credit_footer()
 
 
 def start_card(first_name: str = "User") -> str:
-    """Welcome/start message"""
+    bot_link = f"https://t.me/{config.BOT_USERNAME}"
     return (
-        f"🎧 **Hey {first_name}!**\n\n"
-        f"Main **{config.BOT_NAME}** hoon — sabse advanced "
-        f"Telegram music bot! 🎵\n\n"
-        f"**✨ Features:**\n"
+        f"🎧 <b>Hey {first_name}!</b>\n\n"
+        f"Main <a href=\"{bot_link}\"><b>{config.BOT_NAME}</b></a> hoon — "
+        f"sabse advanced Telegram music bot! 🎵\n\n"
+        f"<b>✨ Features:</b>\n"
         f"• 170+ commands\n"
         f"• 25+ audio filters\n"
         f"• AI recommendations\n"
         f"• 9 languages\n"
         f"• Lightning fast ⚡\n\n"
-        f"**🚀 Quick Start:**\n"
-        f"• `/play <song>` — Music play karo\n"
-        f"• `/help` — Saare commands dekho\n"
-        f"• `/settings` — Customize karo\n\n"
-        f"Use `/help` for all commands."
-        f"{CREDIT_FOOTER}"
+        f"<b>🚀 Quick Start:</b>\n"
+        f"• <code>/play &lt;song&gt;</code> — Music play karo\n"
+        f"• <code>/help</code> — Saare commands dekho\n"
+        f"• <code>/settings</code> — Customize karo\n\n"
+        f"Use <code>/help</code> for all commands."
+        + _credit_footer()
     )
 
 
 def help_card() -> str:
-    """Help menu card"""
     return (
-        f"📖 **{config.BOT_NAME} Commands**\n\n"
-        f"🎵 **Music**\n"
-        f"`/play` `/vplay` `/pause` `/resume`\n"
-        f"`/skip` `/stop` `/seek` `/speed`\n\n"
-        f"🎛️ **Filters**\n"
-        f"`/bass` `/nightcore` `/8d` `/karaoke`\n"
-        f"`/equalizer` `/reverb` `/clear`\n\n"
-        f"📋 **Queue**\n"
-        f"`/queue` `/shuffle` `/loop` `/save`\n\n"
-        f"⚙️ **Settings**\n"
-        f"`/settings` `/lang` `/theme` `/quality`\n\n"
-        f"📊 **Info**\n"
-        f"`/stats` `/ping` `/profile`\n\n"
-        f"👑 **Admin**\n"
-        f"`/admin` `/broadcast` `/stats`"
-        f"{CREDIT_FOOTER}"
+        f"📖 <b>{config.BOT_NAME} Commands</b>\n\n"
+        f"🎵 <b>Music</b>\n"
+        f"<code>/play</code> <code>/vplay</code> <code>/pause</code> <code>/resume</code>\n"
+        f"<code>/skip</code> <code>/stop</code> <code>/seek</code> <code>/speed</code>\n\n"
+        f"🎛️ <b>Filters</b>\n"
+        f"<code>/bass</code> <code>/nightcore</code> <code>/8d</code> <code>/karaoke</code>\n"
+        f"<code>/equalizer</code> <code>/reverb</code> <code>/clear</code>\n\n"
+        f"📋 <b>Queue</b>\n"
+        f"<code>/queue</code> <code>/shuffle</code> <code>/loop</code> <code>/save</code>\n\n"
+        f"⚙️ <b>Settings</b>\n"
+        f"<code>/settings</code> <code>/lang</code> <code>/theme</code> <code>/quality</code>\n\n"
+        f"📊 <b>Info</b>\n"
+        f"<code>/stats</code> <code>/ping</code> <code>/profile</code>\n\n"
+        f"👑 <b>Admin</b>\n"
+        f"<code>/admin</code> <code>/broadcast</code> <code>/stats</code>"
+        + _credit_footer()
     )
 
 
 def error_card(message: str) -> str:
-    """Error message"""
-    return f"❌ **Error**\n\n{message}\n\n{SHORT_CREDIT}"
+    return (
+        f"❌ <b>Error</b>\n\n{message}\n\n"
+        f"⚡ <b>{AUTHOR_NAME}</b> | "
+        f"<a href=\"{AUTHOR_TG_LINK}\">@{AUTHOR_USERNAME}</a>"
+    )
 
 
 def success_card(message: str) -> str:
-    """Success message"""
-    return f"✅ **Success**\n\n{message}"
+    return f"✅ <b>Success</b>\n\n{message}"
 
 
 def stats_card(
@@ -129,21 +125,19 @@ def stats_card(
     cpu: str = "0%",
     ram: str = "0%",
 ) -> str:
-    """Bot statistics card"""
     return (
         f"╭───────────────────────────╮\n"
-        f"│  📊 **{config.BOT_NAME} Stats**\n"
+        f"│  📊 <b>{config.BOT_NAME} Stats</b>\n"
         f"╰───────────────────────────╯\n\n"
-        f"👥 **Users:** `{total_users:,}`\n"
-        f"💬 **Chats:** `{total_chats:,}`\n"
-        f"🎵 **Songs Played:** `{total_songs:,}`\n"
-        f"⏱️ **Uptime:** `{uptime}`\n\n"
-        f"💻 **CPU:** `{cpu}`\n"
-        f"🧠 **RAM:** `{ram}`"
-        f"{CREDIT_FOOTER}"
+        f"👥 <b>Users:</b> <code>{total_users:,}</code>\n"
+        f"💬 <b>Chats:</b> <code>{total_chats:,}</code>\n"
+        f"🎵 <b>Songs Played:</b> <code>{total_songs:,}</code>\n"
+        f"⏱️ <b>Uptime:</b> <code>{uptime}</code>\n\n"
+        f"💻 <b>CPU:</b> <code>{cpu}</code>\n"
+        f"🧠 <b>RAM:</b> <code>{ram}</code>"
+        + _credit_footer()
     )
 
 
 def filter_card(filter_name: str) -> str:
-    """Filter applied notification"""
-    return f"🎛️ **Filter applied:** `{filter_name}`"
+    return f"🎛️ <b>Filter applied:</b> <code>{filter_name}</code>"

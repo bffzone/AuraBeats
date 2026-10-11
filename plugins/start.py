@@ -6,17 +6,31 @@ Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
 import time
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.enums import ParseMode
 
-from config import config, CREDIT_FOOTER, VISIBLE_CREDIT, AUTHOR_TG_LINK
+from config import config, AUTHOR_TG_LINK, AUTHOR_NAME, AUTHOR_USERNAME
 from ui.cards import start_card, help_card
 from ui.keyboards import close_keyboard
 
 
+# Bot logo URL (raw GitHub file)
+LOGO_URL = "https://raw.githubusercontent.com/SakilSakil699/AuraBeats/main/assets/images/logo.png"
+
+
 def _start_kb():
+    bot_link = f"https://t.me/{config.BOT_USERNAME}"
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("➕ Add to Group", url=f"https://t.me/{config.BOT_USERNAME}?startgroup=true"),
+            InlineKeyboardButton("➕ Add to Group", url=f"{bot_link}?startgroup=true"),
             InlineKeyboardButton("📖 Help", callback_data="help_menu"),
+        ],
+        [
+            InlineKeyboardButton("🎵 Play", callback_data="help_play"),
+            InlineKeyboardButton("🎛️ Filters", callback_data="filters"),
+        ],
+        [
+            InlineKeyboardButton("⚙️ Settings", callback_data="help_settings"),
+            InlineKeyboardButton("📊 Stats", callback_data="help_stats"),
         ],
         [
             InlineKeyboardButton("👨‍💻 Developer", url=AUTHOR_TG_LINK),
@@ -27,19 +41,32 @@ def _start_kb():
 
 @Client.on_message(filters.command("start") & filters.private)
 async def start_cmd(client: Client, message: Message):
-    await message.reply_text(
-        start_card(message.from_user.first_name if message.from_user else "User"),
-        reply_markup=_start_kb(),
-        disable_web_page_preview=True,
-    )
+    text = start_card(message.from_user.first_name if message.from_user else "User")
+    kb = _start_kb()
+
+    # Try to send with photo, fallback to text if photo fails
+    try:
+        await message.reply_photo(
+            photo=LOGO_URL,
+            caption=text,
+            reply_markup=kb,
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception as e:
+        # Fallback: text only
+        await message.reply_text(
+            text=text,
+            reply_markup=kb,
+            parse_mode=ParseMode.HTML,
+        )
 
 
 @Client.on_message(filters.command("help"))
 async def help_cmd(client: Client, message: Message):
     await message.reply_text(
-        help_card(),
+        text=help_card(),
         reply_markup=close_keyboard(),
-        disable_web_page_preview=True,
+        parse_mode=ParseMode.HTML,
     )
 
 
@@ -49,7 +76,8 @@ async def ping_cmd(client: Client, message: Message):
     msg = await message.reply_text("🏓 Pinging...")
     elapsed = (time.time() - start) * 1000
     await msg.edit_text(
-        f"🏓 **Pong!**\n\n"
-        f"⚡ Latency: `{elapsed:.2f}ms`\n"
-        f"👤 User: {message.from_user.mention if message.from_user else '?'}"
+        f"🏓 <b>Pong!</b>\n\n"
+        f"⚡ Latency: <code>{elapsed:.2f}ms</code>\n"
+        f"👤 User: {message.from_user.mention if message.from_user else '?'}",
+        parse_mode=ParseMode.HTML,
     )
