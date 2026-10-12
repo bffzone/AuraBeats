@@ -1,7 +1,7 @@
 """
 AuraBeats - Credits & Ownership
-Author: Sakil Anowar
-Telegram: @YO_UR_OFFICIAL_CRUSH
+Author: AuraBeatsOfficial
+Telegram: @Vip_Sakil_Bio
 """
 
 import hashlib
@@ -9,20 +9,20 @@ from typing import Final
 
 
 # ═══════════════════════════════════════
-#   👑 VISIBLE CREDIT (Public)
+#   👑 VISIBLE CREDIT
 # ═══════════════════════════════════════
-AUTHOR_NAME: Final[str] = "Sakil Anowar"
-AUTHOR_USERNAME: Final[str] = "YO_UR_OFFICIAL_CRUSH"
-AUTHOR_TG_LINK: Final[str] = "https://t.me/YO_UR_OFFICIAL_CRUSH"
+AUTHOR_NAME: Final[str] = "AuraBeatsOfficial"
+AUTHOR_USERNAME: Final[str] = "Vip_Sakil_Bio"
+AUTHOR_TG_LINK: Final[str] = "https://t.me/Vip_Sakil_Bio"
 AUTHOR_GITHUB: Final[str] = "https://github.com/SakilSakil699"
 BOT_VERSION: Final[str] = "1.0.0"
 
-# Markdown style credit (bold + hyperlink)
+# Markdown style credit
 VISIBLE_CREDIT: Final[str] = (
     f"**Made By [{AUTHOR_NAME}]({AUTHOR_TG_LINK})**"
 )
 
-# HTML style credit (Telegram HTML)
+# HTML style credit
 VISIBLE_CREDIT_HTML: Final[str] = (
     f'<b>Made By <a href="{AUTHOR_TG_LINK}">{AUTHOR_NAME}</a></b>'
 )
@@ -41,17 +41,13 @@ SHORT_CREDIT: Final[str] = f"⚡ **{AUTHOR_NAME}** | @{AUTHOR_USERNAME}"
 # ═══════════════════════════════════════
 #   🔒 HIDDEN CREDIT (Anti-Copy Protection)
 # ═══════════════════════════════════════
-# Ye kuch encoded/obfuscated values hain
-# Agar koi credits hataayega to bot warning dega
-
-# Base64 encoded: "Sakil Anowar - YO_UR_OFFICIAL_CRUSH"
-_HIDDEN_1: Final[str] = "U2FraWwgQW5vd2FyIC0gWU9fVVJfT0ZGSUNJQUxfQ1JVU0g="
-_HIDDEN_2: Final[str] = "QXVyYUJlYXRzIGJ5IFNha2ls"
-_HIDDEN_3: Final[str] = "aHR0cHM6Ly90Lm1lL1lPX1VSX09GRklDSUFMX0NSVVNI"
+_HIDDEN_1: Final[str] = "QXVyYUJlYXRzT2ZmaWNpYWwgLSBWaXBfU2FraWxfQmlv"
+_HIDDEN_2: Final[str] = "QXVyYUJlYXRz"
+_HIDDEN_3: Final[str] = "aHR0cHM6Ly90Lm1lL1ZpcF9TYWtpbF9CaW8"
 
 # Hex encoded watermark
-_HIDDEN_4: Final[str] = "4175726142656174735f53616b696c"
-_HIDDEN_5: Final[str] = "4d6164655f42795f53616b696c5f416e6f776172"
+_HIDDEN_4: Final[str] = "4175726142656174735f4f6666696369616c"
+_HIDDEN_5: Final[str] = "4d6164655f42795f4175726142656174734f6666696369616c"
 
 # Hash for integrity check
 _INTEGRITY_HASH: Final[str] = hashlib.sha256(
@@ -77,9 +73,9 @@ def verify_credits() -> bool:
     ).hexdigest()
     if _INTEGRITY_HASH != expected:
         return False
-    if AUTHOR_NAME != "Sakil Anowar":
+    if AUTHOR_NAME != "AuraBeatsOfficial":
         return False
-    if AUTHOR_USERNAME != "YO_UR_OFFICIAL_CRUSH":
+    if AUTHOR_USERNAME != "Vip_Sakil_Bio":
         return False
     return True
 
@@ -89,5 +85,4 @@ def get_hidden_signature() -> str:
     return f"AuraBeats::{_INTEGRITY_HASH[:16]}"
 
 
-# Watermark for runtime logs
 WATERMARK: Final[str] = f"AuraBeats © {AUTHOR_NAME}"
