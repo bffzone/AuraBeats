@@ -1,6 +1,6 @@
 """AuraBeats - Extras"""
 from pyrogram import Client, filters
-from pyrogram.types import Message, CallbackQuery
+from pyrogram.types import Message, CallbackQuery, LinkPreviewOptions
 from pyrogram.enums import ParseMode
 from config import config, AUTHOR_NAME, AUTHOR_USERNAME, AUTHOR_TG_LINK
 from ui.cards import help_card
@@ -15,6 +15,7 @@ async def owner_cmd(client, message):
         f"👑 <b>Developer</b>\n\n<b>{AUTHOR_NAME}</b>\n"
         f"📱 <a href=\"{AUTHOR_TG_LINK}\">@{AUTHOR_USERNAME}</a>",
         parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
 
 
@@ -24,6 +25,7 @@ async def credits_cmd(client, message):
         f"🎧 <b>{config.BOT_NAME}</b>  <code>v{config.VERSION}</code>\n\n"
         f"Made by <a href=\"{AUTHOR_TG_LINK}\">{AUTHOR_NAME}</a>",
         parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
 
 
@@ -38,7 +40,10 @@ async def id_cmd(client, message):
 
 @Client.on_callback_query(filters.regex("^help_menu$"))
 async def cb_help(client, query):
-    await query.message.edit_text(help_card(), reply_markup=close_keyboard(), parse_mode=ParseMode.HTML)
+    await query.message.edit_text(
+        help_card(), reply_markup=close_keyboard(), parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
+    )
     await query.answer()
 
 

@@ -1,7 +1,7 @@
 """AuraBeats - /start, /help, /ping"""
 import time
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, LinkPreviewOptions
 from pyrogram.enums import ParseMode
 from config import config, AUTHOR_TG_LINK
 from ui.cards import start_card, help_card
@@ -29,12 +29,19 @@ async def start_cmd(client, message):
     try:
         await message.reply_photo(photo=LOGO_URL, caption=text, reply_markup=kb, parse_mode=ParseMode.HTML)
     except Exception:
-        await message.reply_text(text=text, reply_markup=kb, parse_mode=ParseMode.HTML)
+        await message.reply_text(
+            text=text, reply_markup=kb, parse_mode=ParseMode.HTML,
+            link_preview_options=LinkPreviewOptions(is_disabled=True),
+        )
 
 
 @Client.on_message(filters.command("help"))
 async def help_cmd(client, message):
-    await message.reply_text(text=help_card(), reply_markup=close_keyboard(), parse_mode=ParseMode.HTML)
+    await message.reply_text(
+        text=help_card(), reply_markup=close_keyboard(),
+        parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
+    )
 
 
 @Client.on_message(filters.command("ping"))
@@ -42,4 +49,7 @@ async def ping_cmd(client, message):
     start = time.time()
     msg = await message.reply_text("🏓 Pinging...")
     elapsed = (time.time() - start) * 1000
-    await msg.edit_text(f"🏓 <b>Pong!</b>  <code>{elapsed:.0f}ms</code>", parse_mode=ParseMode.HTML)
+    await msg.edit_text(
+        f"🏓 <b>Pong!</b>  <code>{elapsed:.0f}ms</code>",
+        parse_mode=ParseMode.HTML,
+    )
