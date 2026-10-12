@@ -58,3 +58,4 @@ session_string.txt
 *.session
 *.session-journal
 .env
+bgutil-ytdlp-pot-provider/
