@@ -12,7 +12,8 @@ PREFIXES = [config.PREFIX, "/", "!"]
 @Client.on_message(filters.command("owner", prefixes=PREFIXES))
 async def owner_cmd(client, message):
     await message.reply_text(
-        f"👑 <b>Developer</b>\n\n<b>{AUTHOR_NAME}</b>\n"
+        f"👑 <b>Developer</b>\n\n"
+        f"<b>{AUTHOR_NAME}</b>\n"
         f"📱 <a href=\"{AUTHOR_TG_LINK}\">@{AUTHOR_USERNAME}</a>",
         parse_mode=ParseMode.HTML,
         link_preview_options=LinkPreviewOptions(is_disabled=True),
@@ -35,13 +36,19 @@ async def id_cmd(client, message):
     if message.reply_to_message:
         text += f"💬 <code>{message.reply_to_message.from_user.id}</code>\n"
     text += f"📢 <code>{message.chat.id}</code>"
-    await message.reply_text(text, parse_mode=ParseMode.HTML)
+    await message.reply_text(
+        text,
+        parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
+    )
 
 
 @Client.on_callback_query(filters.regex("^help_menu$"))
 async def cb_help(client, query):
     await query.message.edit_text(
-        help_card(), reply_markup=close_keyboard(), parse_mode=ParseMode.HTML,
+        help_card(),
+        reply_markup=close_keyboard(),
+        parse_mode=ParseMode.HTML,
         link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
     await query.answer()
