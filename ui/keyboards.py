@@ -71,3 +71,10 @@ def confirm_keyboard(action: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [btn("✅ Yes", f"confirm_{action}"), btn("❌ No", "cb_close")]
     ])
+
+
+# ═══════════════════════════════════════
+#   BACKWARD COMPATIBILITY ALIASES
+# ═══════════════════════════════════════
+filters_keyboard = filters_menu
+player_controls = player_keyboard
