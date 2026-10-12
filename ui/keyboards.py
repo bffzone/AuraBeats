@@ -54,6 +54,15 @@ def settings_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
+def admin_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [btn("📊 Stats", "cb_adm_stats"), btn("👥 Users", "cb_adm_users")],
+        [btn("📢 Broadcast", "cb_adm_broadcast"), btn("🚫 Ban", "cb_adm_ban")],
+        [btn("🔧 Maintain", "cb_adm_maint"), btn("♻️ Reload", "cb_adm_reload")],
+        [btn("❌ Close", "cb_close")],
+    ])
+
+
 def close_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([[btn("❌ Close", "cb_close")]])
 
