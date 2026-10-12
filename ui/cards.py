@@ -12,7 +12,7 @@ def now_playing_card(title, artist="Unknown", duration=0, position=0,
                      volume=80, loop_mode="Off", filter_name="None", requested_by=""):
     cur = format_duration(position)
     tot = format_duration(duration)
-    bar = progress_bar(position, duration, 8)
+    bar = progress_bar(position, duration, 10)
     req = f"\n👤  <b>{truncate(requested_by, 22)}</b>" if requested_by else ""
 
     return (
@@ -76,7 +76,7 @@ def success_card(message: str) -> str:
     return f"✅ {message}"
 
 
-def stats_card(total_users=0, total_chats=0, total_songs=0, uptime="0s", cpu="0%", ram="0%"):
+def stats_card(total_users=0, total_chats=0, total_songs=0, uptime="Just started", cpu="0%", ram="0%"):
     return (
         f"📊 <b>STATS • {config.BOT_NAME}</b>\n\n"
         f"👥 <code>{total_users:,}</code>  ⋆  💬 <code>{total_chats:,}</code>\n"
