@@ -1,21 +1,24 @@
 # ═══════════════════════════════════════
 #   AuraBeats - Dependencies
 #   Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
+#   Python: 3.12
 # ═══════════════════════════════════════
 
-# ─── Telegram (Kurigram = Pyrogram ka fork) ───
-kurigram
-tgcrypto
-py-tgcalls
-ntgcalls
+# ─── Telegram (Kurigram = Pyrogram fork) ───
+kurigram>=2.2.26
+tgcrypto>=1.2.5
 
-# ─── Music ───
+# ─── Voice Chat ───
+py-tgcalls>=3.0.0
+ntgcalls>=3.0.3
+
+# ─── Music (LATEST) ───
 yt-dlp
 
 # ─── Utils ───
-python-dotenv
-psutil
-screeninfo
-aiohttp
-Pillow
-loguru
+python-dotenv>=1.2.4
+psutil>=7.2.2
+screeninfo>=0.8.1
+aiohttp>=3.14.5
+Pillow>=12.3.0
+loguru>=0.7.3
