@@ -1,7 +1,7 @@
 """AuraBeats - /play"""
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from pyrogram.enums import ParseMode, LinkPreviewOptions
+from pyrogram.enums import ParseMode
 from config import config, logger
 from services import search_youtube, MusicService
 from services.queue_manager import add_to_queue, get_current
@@ -46,7 +46,6 @@ async def play_cmd(client, message):
                                  requested_by=user.first_name if user else ""),
                 reply_markup=player_keyboard(),
                 parse_mode=ParseMode.HTML,
-                link_preview_options=LinkPreviewOptions(is_disabled=True),
             )
     except Exception as e:
         logger.exception(f"Play failed: {e}")

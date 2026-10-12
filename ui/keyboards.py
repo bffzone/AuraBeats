@@ -62,3 +62,29 @@ def confirm_keyboard(action: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [btn("✅ Yes", f"confirm_{action}"), btn("❌ No", "cb_close")]
     ])
+
+
+def settings_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [btn("📊 Stats", "cb_adm_stats"), btn("👥 Users", "cb_adm_users")],
+        [btn("📢 Broadcast", "cb_adm_broadcast"), btn("🚫 Ban", "cb_adm_ban")],
+        [btn("🔧 Maintain", "cb_adm_maint"), btn("♻️ Reload", "cb_adm_reload")],
+        [btn("❌ Close", "cb_close")],
+    ])
+
+
+def settings_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [btn("📊 Stats", "cb_adm_stats"), btn("👥 Users", "cb_adm_users")],
+        [btn("📢 Broadcast", "cb_adm_broadcast"), btn("🚫 Ban", "cb_adm_ban")],
+        [btn("🔧 Maintain", "cb_adm_maint"), btn("♻️ Reload", "cb_adm_reload")],
+        [btn("❌ Close", "cb_close")],
+    ])
+
+
+# ═══════════════════════════════════════
+#   BACKWARD COMPATIBILITY ALIASES
+# ═══════════════════════════════════════
+filters_menu = filters_menu
+settings_keyboard = settings_keyboard
+player_keyboard = player_keyboard

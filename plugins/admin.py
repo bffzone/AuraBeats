@@ -9,7 +9,7 @@ from pyrogram.types import Message
 from config import config, logger
 from utils.decorators import admin_only, owner_only
 from ui.cards import success_card, error_card, stats_card
-from ui.keyboards import admin_keyboard
+from ui.keyboards import settings_keyboard
 from services.analytics import analytics
 from services.user import UserService
 
@@ -22,7 +22,7 @@ PREFIXES = [config.PREFIX, "/", "!"]
 async def admin_cmd(client: Client, message: Message):
     await message.reply_text(
         "👑 **Admin Panel**",
-        reply_markup=admin_keyboard(),
+        reply_markup=settings_keyboard(),
     )
 
 

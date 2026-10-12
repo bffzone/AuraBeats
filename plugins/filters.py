@@ -7,7 +7,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message, CallbackQuery
 
 from config import config
-from ui.keyboards import filters_keyboard
+from ui.keyboards import filters_menu
 from ui.cards import success_card, error_card, help_card
 from filters import build_filter, list_presets
 
@@ -24,7 +24,7 @@ async def filters_cmd(client: Client, message: Message):
     lines.append("\n**Use:** `.bass`, `.nightcore`, `.8d` etc.")
     await message.reply_text(
         "\n".join(lines),
-        reply_markup=filters_keyboard(),
+        reply_markup=filters_menu(),
     )
 
 
@@ -57,7 +57,7 @@ async def clearfilters_cmd(client: Client, message: Message):
 async def cb_filters(client: Client, query: CallbackQuery):
     await query.message.edit_text(
         "🎛️ **Select a filter:**",
-        reply_markup=filters_keyboard(),
+        reply_markup=filters_menu(),
     )
 
 
