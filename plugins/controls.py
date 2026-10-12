@@ -1,9 +1,11 @@
 """AuraBeats - Player Controls & Callbacks"""
 from pyrogram import Client, filters
-from pyrogram.types import Message, CallbackQuery
+from pyrogram.types import Message, CallbackQuery, LinkPreviewOptions
 from pyrogram.enums import ParseMode
 from config import config
-from ui.keyboards import player_keyboard, more_menu, filters_menu, volume_menu, queue_keyboard
+from ui.keyboards import (
+    player_keyboard, more_menu, filters_menu, volume_menu, queue_keyboard,
+)
 from ui.cards import error_card, success_card
 from services import queue_manager
 
@@ -15,31 +17,35 @@ def _calls():
     return get_calls_manager()
 
 
+def _html_kwargs():
+    return {"parse_mode": ParseMode.HTML, "link_preview_options": LinkPreviewOptions(is_disabled=True)}
+
+
 @Client.on_message(filters.command("pause", prefixes=PREFIXES) & ~filters.private)
 async def pause_cmd(client, message):
     try:
         await _calls().pause(message.chat.id)
-        await message.reply_text(success_card("⏸️ Paused"), parse_mode=ParseMode.HTML)
+        await message.reply_text(success_card("⏸️ Paused"), **_html_kwargs())
     except Exception as e:
-        await message.reply_text(error_card(str(e)[:100]), parse_mode=ParseMode.HTML)
+        await message.reply_text(error_card(str(e)[:100]), **_html_kwargs())
 
 
 @Client.on_message(filters.command("resume", prefixes=PREFIXES) & ~filters.private)
 async def resume_cmd(client, message):
     try:
         await _calls().resume(message.chat.id)
-        await message.reply_text(success_card("▶️ Resumed"), parse_mode=ParseMode.HTML)
+        await message.reply_text(success_card("▶️ Resumed"), **_html_kwargs())
     except Exception as e:
-        await message.reply_text(error_card(str(e)[:100]), parse_mode=ParseMode.HTML)
+        await message.reply_text(error_card(str(e)[:100]), **_html_kwargs())
 
 
 @Client.on_message(filters.command("skip", prefixes=PREFIXES) & ~filters.private)
 async def skip_cmd(client, message):
     ok = await queue_manager.skip_current(message.chat.id)
     if ok:
-        await message.reply_text(success_card("⏭️ Skipped"), parse_mode=ParseMode.HTML)
+        await message.reply_text(success_card("⏭️ Skipped"), **_html_kwargs())
     else:
-        await message.reply_text(error_card("Queue is empty"), parse_mode=ParseMode.HTML)
+        await message.reply_text(error_card("Queue is empty"), **_html_kwargs())
 
 
 @Client.on_message(filters.command("stop", prefixes=PREFIXES) & ~filters.private)
@@ -47,9 +53,9 @@ async def stop_cmd(client, message):
     try:
         await _calls().stop(message.chat.id)
         await queue_manager.clear_queue(message.chat.id)
-        await message.reply_text(success_card("⏹️ Stopped"), parse_mode=ParseMode.HTML)
+        await message.reply_text(success_card("⏹️ Stopped"), **_html_kwargs())
     except Exception as e:
-        await message.reply_text(error_card(str(e)[:100]), parse_mode=ParseMode.HTML)
+        await message.reply_text(error_card(str(e)[:100]), **_html_kwargs())
 
 
 @Client.on_callback_query(filters.regex("^cb_pause_resume$"))
@@ -76,7 +82,7 @@ async def cb_stop(client, query):
     try:
         await _calls().stop(query.message.chat.id)
         await queue_manager.clear_queue(query.message.chat.id)
-        await query.message.edit_text(success_card("⏹️ Stopped"), parse_mode=ParseMode.HTML)
+        await query.message.edit_text(success_card("⏹️ Stopped"), **_html_kwargs())
     except Exception as e:
         await query.answer(str(e)[:50], show_alert=True)
 
@@ -91,28 +97,34 @@ async def cb_shuffle(client, query):
 async def cb_queue(client, query):
     from ui.cards import queue_card
     q = await queue_manager.get_queue(query.message.chat.id)
-    await query.message.edit_text(queue_card(q), reply_markup=queue_keyboard(), parse_mode=ParseMode.HTML)
+    await query.message.edit_text(queue_card(q), reply_markup=queue_keyboard(), **_html_kwargs())
     await query.answer()
 
 
 @Client.on_callback_query(filters.regex("^cb_filters_menu$"))
 async def cb_filters_menu(client, query):
-    await query.message.edit_text("🎛️ <b>Audio Filters</b>\n\nChoose a filter:",
-                                   reply_markup=filters_menu(), parse_mode=ParseMode.HTML)
+    await query.message.edit_text(
+        "🎛️ <b>Audio Filters</b>\n\nChoose a filter:",
+        reply_markup=filters_menu(), **_html_kwargs()
+    )
     await query.answer()
 
 
 @Client.on_callback_query(filters.regex("^cb_volume_menu$"))
 async def cb_volume_menu(client, query):
-    await query.message.edit_text("🔊 <b>Volume Control</b>",
-                                   reply_markup=volume_menu(), parse_mode=ParseMode.HTML)
+    await query.message.edit_text(
+        "🔊 <b>Volume Control</b>",
+        reply_markup=volume_menu(), **_html_kwargs()
+    )
     await query.answer()
 
 
 @Client.on_callback_query(filters.regex("^cb_more_menu$"))
 async def cb_more_menu(client, query):
-    await query.message.edit_text("⋯ <b>More Options</b>",
-                                   reply_markup=more_menu(), parse_mode=ParseMode.HTML)
+    await query.message.edit_text(
+        "⋯ <b>More Options</b>",
+        reply_markup=more_menu(), **_html_kwargs()
+    )
     await query.answer()
 
 
@@ -129,7 +141,7 @@ async def cb_back_player(client, query):
             duration=current.get("duration", 0),
             requested_by=current.get("requested_by_name", ""),
         ),
-        reply_markup=player_keyboard(), parse_mode=ParseMode.HTML,
+        reply_markup=player_keyboard(), **_html_kwargs()
     )
     await query.answer()
 
@@ -162,7 +174,7 @@ async def cb_loop(client, query):
 @Client.on_callback_query(filters.regex("^cb_clear_queue$"))
 async def cb_clear_queue(client, query):
     await queue_manager.clear_queue(query.message.chat.id)
-    await query.message.edit_text(success_card("🗑️ Queue cleared"), parse_mode=ParseMode.HTML)
+    await query.message.edit_text(success_card("🗑️ Queue cleared"), **_html_kwargs())
     await query.answer()
 
 
