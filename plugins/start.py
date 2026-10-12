@@ -27,10 +27,17 @@ async def start_cmd(client, message):
     text = start_card(message.from_user.first_name if message.from_user else "User")
     kb = _start_kb()
     try:
-        await message.reply_photo(photo=LOGO_URL, caption=text, reply_markup=kb, parse_mode=ParseMode.HTML)
+        await message.reply_photo(
+            photo=LOGO_URL,
+            caption=text,
+            reply_markup=kb,
+            parse_mode=ParseMode.HTML,
+        )
     except Exception:
         await message.reply_text(
-            text=text, reply_markup=kb, parse_mode=ParseMode.HTML,
+            text=text,
+            reply_markup=kb,
+            parse_mode=ParseMode.HTML,
             link_preview_options=LinkPreviewOptions(is_disabled=True),
         )
 
@@ -38,7 +45,8 @@ async def start_cmd(client, message):
 @Client.on_message(filters.command("help"))
 async def help_cmd(client, message):
     await message.reply_text(
-        text=help_card(), reply_markup=close_keyboard(),
+        text=help_card(),
+        reply_markup=close_keyboard(),
         parse_mode=ParseMode.HTML,
         link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
