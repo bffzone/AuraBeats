@@ -50,3 +50,11 @@ Thumbs.db
 data/
 *.session
 *.session-journal
+
+# Sensitive files - NEVER commit
+gen_session.py
+new_session.txt
+session_string.txt
+*.session
+*.session-journal
+.env

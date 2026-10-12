@@ -1,4 +1,4 @@
-"""AuraBeats - Music Service"""
+"""AuraBeats - Music Service with Auto-Join"""
 from typing import Optional
 from core import logger
 from services.search import search_youtube
@@ -18,8 +18,25 @@ class MusicService:
     async def search(self, query: str) -> Optional[dict]:
         return search_youtube(query)
 
-    async def play_now(self, track: dict) -> bool:
+    async def ensure_assistant(self, bot_client=None) -> bool:
+        """Make sure assistant is in the chat"""
         try:
+            from plugins.auto_join import is_assistant_in_chat, add_assistant_to_chat
+            if bot_client is None:
+                return False
+            if await is_assistant_in_chat(bot_client, self.chat_id):
+                return True
+            return await add_assistant_to_chat(bot_client, self.chat_id)
+        except Exception as e:
+            logger.debug(f"ensure_assistant: {e}")
+            return False
+
+    async def play_now(self, track: dict, bot_client=None) -> bool:
+        try:
+            # Auto-add assistant if needed
+            if bot_client:
+                await self.ensure_assistant(bot_client)
+
             url = get_stream_url(track["url"])
             calls_manager = _calls()
             await calls_manager.play(self.chat_id, url)
@@ -28,9 +45,9 @@ class MusicService:
             return True
         except Exception as e:
             logger.error(f"play_now: {e}")
-            return False
+            raise
 
-    async def add_and_play(self, track: dict, user_id: int = 0, user_name: str = "") -> dict:
+    async def add_and_play(self, track: dict, user_id: int = 0, user_name: str = ""):
         current = queue_manager.get_current(self.chat_id)
         calls_manager = _calls()
         if current and self.chat_id in calls_manager.active_chats:
