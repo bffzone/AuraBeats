@@ -148,7 +148,7 @@ async def send_queue_card(client, chat_id: int, track: dict, position: int):
 
 
 def _start_progress(chat_id: int, message, track: dict):
-    """Start live progress loop"""
+    """Start live progress loop (1 second updates)"""
     task = asyncio.create_task(_progress_loop(chat_id, message, track))
     _active_progress[chat_id] = {
         "message": message,
@@ -168,15 +168,18 @@ def stop_progress(chat_id: int):
 
 
 async def _progress_loop(chat_id: int, message, track: dict):
-    """Update progress bar every 5 seconds"""
+    """Update progress bar EVERY 1 SECOND"""
     duration = track.get("duration", 0)
     if duration <= 0:
         return
 
     start_time = time.time()
+    last_elapsed = -1
+    flood_count = 0
+
     while True:
         try:
-            await asyncio.sleep(5)
+            await asyncio.sleep(1)  # ← 1 SECOND UPDATE
 
             if chat_id not in _active_progress:
                 break
@@ -185,6 +188,11 @@ async def _progress_loop(chat_id: int, message, track: dict):
             if elapsed > duration:
                 stop_progress(chat_id)
                 break
+
+            # Skip if same second
+            if elapsed == last_elapsed:
+                continue
+            last_elapsed = elapsed
 
             new_caption = now_playing_card(
                 title=track.get("title", "Unknown"),
@@ -208,10 +216,16 @@ async def _progress_loop(chat_id: int, message, track: dict):
                         parse_mode=ParseMode.HTML,
                         link_preview_options=LinkPreviewOptions(is_disabled=True),
                     )
+                flood_count = 0  # reset on success
+
             except MessageNotModified:
                 pass
             except FloodWait as e:
-                await asyncio.sleep(e.value)
+                flood_count += 1
+                # If flood keeps happening, slow down to 3 sec
+                wait = e.value if e.value < 30 else 5
+                logger.warning(f"FloodWait: {wait}s (hit #{flood_count})")
+                await asyncio.sleep(wait)
             except Exception as e:
                 logger.error(f"Progress edit failed: {e}")
                 stop_progress(chat_id)
