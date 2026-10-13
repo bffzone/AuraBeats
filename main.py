@@ -1,8 +1,7 @@
 """
 # Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 AuraBeats - Entry Point
-Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
-Telegram: https://t.me/YO_UR_OFFICIAL_CRUSH
+Author: AuraBeatsOfficial (@Vip_Sakil_Bio)
 """
 
 import asyncio
@@ -22,23 +21,32 @@ BANNER = r"""
 
 async def run():
     print(BANNER)
-    print("👨‍💻 Made By: Sakil Anowar")
-    print("📱 Telegram: @YO_UR_OFFICIAL_CRUSH")
+    print("👨‍💻 Made By: AuraBeatsOfficial")
+    print("📱 Telegram: @Vip_Sakil_Bio")
     print("=" * 50)
 
     try:
         from pyrogram import idle
-        from config import config, logger, verify_credits, WATERMARK
+        from config import config, logger, verify_credits, WATERMARK, get_tamper_message
+        from config.watermark import verify_repo_integrity
         from core.bot import AuraBeats
     except ImportError as e:
         print(f"❌ Import error: {e}")
         print("Run: pip install -r requirements.txt")
         return
 
+    # 🛡️ Anti-tamper
     if not verify_credits():
+        print("=" * 50)
         print("🚫 CREDIT TAMPERED! Bot will not start.")
-        print(f"Original author: {WATERMARK}")
+        print("   Original: AuraBeatsOfficial")
+        print("   Contact:  @Vip_Sakil_Bio")
+        print("=" * 50)
         return
+
+    ok, missing = verify_repo_integrity()
+    if not ok:
+        logger.warning(f"⚠️ Watermark missing in: {', '.join(missing)}")
 
     bot = AuraBeats()
     try:

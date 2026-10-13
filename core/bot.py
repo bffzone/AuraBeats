@@ -1,7 +1,10 @@
 """AuraBeats - Main Bot"""
 # Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from pyrogram import Client
-from config import config, logger, WATERMARK, verify_credits
+from config import (
+    config, logger, WATERMARK, verify_credits, get_tamper_message,
+)
+from config.watermark import verify_repo_integrity
 from core.database import db
 from core.cache import cache
 from core.assistant import assistant_manager
@@ -14,16 +17,31 @@ class AuraBeats:
         self.assistant: Client = None
 
     async def start(self):
+        # ═══════════════════════════════════════
+        #   🛡️ ANTI-TAMPER CHECK
+        # ═══════════════════════════════════════
         if not verify_credits():
-            logger.error("CREDIT TAMPERED!")
+            logger.error("=" * 50)
+            logger.error("🚫 CREDIT TAMPERED!")
+            logger.error(f"   Original: AuraBeatsOfficial")
+            logger.error(f"   Contact:  @Vip_Sakil_Bio")
+            logger.error("=" * 50)
             raise SystemExit(1)
 
+        # Check file-level watermarks
+        ok, missing = verify_repo_integrity()
+        if not ok:
+            logger.warning(f"⚠️ Missing watermarks in: {', '.join(missing)}")
+            # Warning only, not fatal (for forks with good intentions)
+            # To make it fatal, change to: raise SystemExit(1)
+
         logger.info("=" * 50)
-        logger.info(f"  AuraBeats v{config.VERSION}")
-        logger.info(f"  Made By Sakil Anowar")
-        logger.info(f"  @Vip_Sakil_Bio")
+        logger.info(f"  🎧 AuraBeats v{config.VERSION}")
+        logger.info(f"  👨‍💻 Made By AuraBeatsOfficial")
+        logger.info(f"  📱 @Vip_Sakil_Bio")
         logger.info("=" * 50)
         logger.debug(f"[{WATERMARK}]")
+        logger.debug("[Signature: {sig}]".format(sig=__import__("config").credits.get_hidden_signature()))
 
         await db.connect()
         cache.set("bot_start_time", __import__("time").time())
@@ -49,7 +67,7 @@ class AuraBeats:
 
         logger.info("Starting voice engine...")
         await calls_manager.initialize(self.assistant)
-        calls_manager.bot = self.bot          # ← Ye line add karo
+        calls_manager.bot = self.bot
         logger.success("PyTgCalls ready")
 
         logger.success(f"{config.BOT_NAME} is LIVE!")
