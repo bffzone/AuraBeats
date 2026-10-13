@@ -200,20 +200,23 @@ async def cb_back_player(client, query):
 
 
 # ═══════════════════════════════════════
-#   FILTER APPLY (REAL FFmpeg)
+#   FILTER APPLY (Next Song — No Interruption)
 # ═══════════════════════════════════════
 @Client.on_callback_query(filters.regex("^cb_f_(.+)$"))
 async def cb_filter_apply(client, query):
-    """Apply real FFmpeg filter and re-stream current song"""
+    """
+    Set filter for NEXT song.
+    Current song keeps playing — assistant stays in VC.
+    """
     fname = query.matches[0].group(1)
     chat_id = query.message.chat.id
 
-    # ─── Clear filter ───
+    # ─── Clear all filters ───
     if fname == "clear":
         from services.filter_state import clear_filter
         clear_filter(chat_id)
         try:
-            await query.answer("❌ All filters cleared")
+            await query.answer("❌ Filter cleared — applies from next song")
         except Exception:
             pass
         return
@@ -228,30 +231,19 @@ async def cb_filter_apply(client, query):
             pass
         return
 
-    # ─── Set filter state ───
+    # ─── Set filter state for next song ───
     from services.filter_state import set_filter
     set_filter(chat_id, fname)
 
-    # ─── ANSWER QUERY FIRST (before long ops!) ───
+    # ─── Notify user (no interruption to current playback) ───
     display = get_filter_display_name(fname)
     try:
-        await query.answer(f"🎛️ {display} applied ✓")
+        await query.answer(
+            f"🎛️ {display} set for next song",
+            show_alert=True,
+        )
     except Exception as e:
         logger.debug(f"query.answer failed: {e}")
-
-    # ─── THEN apply filter (long operation) ───
-    current = queue_manager.get_current(chat_id)
-    if not current:
-        return
-
-    try:
-        from services.downloader import get_stream_url
-        url = get_stream_url(current["url"], video_id=current.get("video_id"))
-        calls = _calls()
-        await calls.play(chat_id, url, filter_name=fname)
-        logger.info(f"Filter '{fname}' applied in {chat_id}")
-    except Exception as e:
-        logger.error(f"Filter apply failed: {e}")
 
 
 # ═══════════════════════════════════════
