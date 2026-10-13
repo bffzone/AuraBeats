@@ -1,5 +1,5 @@
-"""AuraBeats - Player UI (Live Progress + Pause Support)"""
 # Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
+"""AuraBeats - Player UI (Live Progress + Pause Support)"""
 import os
 import time
 import asyncio
@@ -60,6 +60,7 @@ async def send_now_playing(client, chat_id: int, track: dict):
         duration=track.get("duration", 0),
         position=0,
         requested_by=track.get("requested_by_name", ""),
+        video_id=track.get("video_id", ""),
     )
 
     thumb_url = get_thumb_url(track)
@@ -240,6 +241,7 @@ async def _progress_loop(chat_id: int, message, track: dict):
                 duration=duration,
                 position=elapsed,
                 requested_by=track.get("requested_by_name", ""),
+                video_id=track.get("video_id", ""),
             )
 
             try:
@@ -256,7 +258,7 @@ async def _progress_loop(chat_id: int, message, track: dict):
                         parse_mode=ParseMode.HTML,
                         link_preview_options=LinkPreviewOptions(is_disabled=True),
                     )
-                fail_count = 0  # reset on success
+                fail_count = 0
 
             except MessageNotModified:
                 pass
