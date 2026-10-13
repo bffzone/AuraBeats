@@ -25,12 +25,10 @@ def _get_ydl_opts() -> dict:
 
 def _find_stream_url(info: dict) -> Optional[str]:
     """Find best stream URL from info dict"""
-    # Method 1: Direct URL
     url = info.get("url")
     if url:
         return url
 
-    # Method 2: Audio-only formats
     formats = info.get("formats") or []
     audio_only = [
         f for f in formats
@@ -41,7 +39,6 @@ def _find_stream_url(info: dict) -> Optional[str]:
         audio_only.sort(key=lambda x: x.get("abr") or x.get("tbr") or 0, reverse=True)
         return audio_only[0].get("url")
 
-    # Method 3: Any format with URL
     for f in formats:
         if f.get("url"):
             return f["url"]
@@ -54,7 +51,6 @@ def get_stream_url(url: str, video_id: str = None) -> Optional[str]:
     if not url:
         raise DownloadError("Empty URL")
 
-    # Try cache first
     if video_id:
         from services.search import get_cached_info
         cached = get_cached_info(video_id)
@@ -64,7 +60,6 @@ def get_stream_url(url: str, video_id: str = None) -> Optional[str]:
                 logger.debug(f"Stream URL from cache: {video_id}")
                 return stream
 
-    # Fresh extract
     opts = _get_ydl_opts()
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
@@ -87,3 +82,24 @@ def get_stream_url(url: str, video_id: str = None) -> Optional[str]:
     except Exception as e:
         logger.exception(f"Stream extract error: {e}")
         raise DownloadError(str(e))
+
+
+def get_track_info(url: str) -> dict:
+    """Get full track info without downloading"""
+    opts = _get_ydl_opts()
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        try:
+            info = ydl.extract_info(url, download=False)
+            if info.get("entries"):
+                info = info["entries"][0]
+            return {
+                "title": info.get("title", "Unknown"),
+                "duration": int(info.get("duration") or 0),
+                "artist": info.get("uploader") or "Unknown",
+                "thumbnail": info.get("thumbnail"),
+                "url": info.get("webpage_url") or url,
+                "video_id": info.get("id", ""),
+            }
+        except Exception as e:
+            logger.error(f"Track info failed: {e}")
+            raise DownloadError(str(e))
