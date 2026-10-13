@@ -1,5 +1,4 @@
-"""AuraBeats - Stream URL Extractor (with cache)"""
-# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
+"""AuraBeats - Stream URL Extractor (with cache + filter support)"""
 from typing import Optional
 import yt_dlp
 from config import logger, DownloadError
@@ -25,7 +24,6 @@ def _get_ydl_opts() -> dict:
 
 
 def _find_stream_url(info: dict) -> Optional[str]:
-    """Find best stream URL from info dict"""
     url = info.get("url")
     if url:
         return url
@@ -48,7 +46,6 @@ def _find_stream_url(info: dict) -> Optional[str]:
 
 
 def get_stream_url(url: str, video_id: str = None) -> Optional[str]:
-    """Get stream URL - uses cache if available"""
     if not url:
         raise DownloadError("Empty URL")
 
@@ -86,7 +83,6 @@ def get_stream_url(url: str, video_id: str = None) -> Optional[str]:
 
 
 def get_track_info(url: str) -> dict:
-    """Get full track info without downloading"""
     opts = _get_ydl_opts()
     with yt_dlp.YoutubeDL(opts) as ydl:
         try:
