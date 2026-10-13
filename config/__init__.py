@@ -1,11 +1,11 @@
 """AuraBeats - Config Package"""
-# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from config.settings import config, Config
 from config.logger import logger
 from config.credits import (
     AUTHOR_NAME, AUTHOR_USERNAME, AUTHOR_TG_LINK, AUTHOR_GITHUB,
     VISIBLE_CREDIT, VISIBLE_CREDIT_HTML, CREDIT_FOOTER, SHORT_CREDIT,
     WATERMARK, get_hidden_signature, verify_credits,
+    get_watermark, get_tamper_message,
 )
 from config.constants import (
     QUALITY_PRESETS, FILTERS, LoopMode, PlayerState, Role, Emoji, Messages,
@@ -22,6 +22,7 @@ __all__ = [
     "AUTHOR_NAME", "AUTHOR_USERNAME", "AUTHOR_TG_LINK", "AUTHOR_GITHUB",
     "VISIBLE_CREDIT", "VISIBLE_CREDIT_HTML", "CREDIT_FOOTER", "SHORT_CREDIT",
     "WATERMARK", "get_hidden_signature", "verify_credits",
+    "get_watermark", "get_tamper_message",
     "QUALITY_PRESETS", "FILTERS", "LoopMode", "PlayerState", "Role", "Emoji", "Messages",
     "AuraBeatsError", "ConfigError", "DatabaseError", "MusicError",
     "SearchError", "DownloadError", "StreamError", "VoiceChatError",
