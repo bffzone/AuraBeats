@@ -1,4 +1,4 @@
-"""AuraBeats - Player UI (Live Progress + Now Playing Cards)"""
+"""AuraBeats - Player UI (Live Progress + Pause Support)"""
 import os
 import time
 import asyncio
@@ -12,6 +12,11 @@ from ui.keyboards import player_keyboard
 
 # Active progress tasks per chat
 _active_progress = {}
+# Paused chats
+_paused_chats = {}
+
+# Telegram safe update interval (seconds)
+UPDATE_INTERVAL = 10
 
 
 def get_thumb_url(track: dict) -> str:
@@ -35,7 +40,7 @@ async def download_thumb(url: str, path: str) -> bool:
 
 
 async def send_now_playing(client, chat_id: int, track: dict):
-    """Send now playing card and start live progress updater"""
+    """Send now playing card and start live progress"""
     stop_progress(chat_id)
 
     caption = now_playing_card(
@@ -148,7 +153,7 @@ async def send_queue_card(client, chat_id: int, track: dict, position: int):
 
 
 def _start_progress(chat_id: int, message, track: dict):
-    """Start live progress loop (1 second updates)"""
+    """Start live progress loop"""
     task = asyncio.create_task(_progress_loop(chat_id, message, track))
     _active_progress[chat_id] = {
         "message": message,
@@ -156,10 +161,29 @@ def _start_progress(chat_id: int, message, track: dict):
         "start": time.time(),
         "task": task,
     }
+    _paused_chats.pop(chat_id, None)
+
+
+def pause_progress(chat_id: int):
+    """Pause the timer"""
+    if chat_id not in _paused_chats:
+        _paused_chats[chat_id] = time.time()
+        logger.debug(f"⏸️ Progress paused for {chat_id}")
+
+
+def resume_progress(chat_id: int):
+    """Resume the timer"""
+    if chat_id in _paused_chats:
+        paused_duration = time.time() - _paused_chats.pop(chat_id)
+        data = _active_progress.get(chat_id)
+        if data:
+            data["start"] += paused_duration
+        logger.debug(f"▶️ Progress resumed for {chat_id}")
 
 
 def stop_progress(chat_id: int):
     """Stop progress updater"""
+    _paused_chats.pop(chat_id, None)
     data = _active_progress.pop(chat_id, None)
     if data:
         task = data.get("task")
@@ -168,28 +192,35 @@ def stop_progress(chat_id: int):
 
 
 async def _progress_loop(chat_id: int, message, track: dict):
-    """Update progress bar EVERY 1 SECOND"""
+    """
+    Update progress bar every 10 seconds (Telegram safe limit)
+    """
     duration = track.get("duration", 0)
     if duration <= 0:
         return
 
-    start_time = time.time()
     last_elapsed = -1
-    flood_count = 0
 
     while True:
         try:
-            await asyncio.sleep(1)  # ← 1 SECOND UPDATE
+            await asyncio.sleep(UPDATE_INTERVAL)
 
             if chat_id not in _active_progress:
                 break
 
-            elapsed = int(time.time() - start_time)
+            # If paused, skip updating
+            if chat_id in _paused_chats:
+                continue
+
+            data = _active_progress.get(chat_id)
+            if not data:
+                break
+
+            elapsed = int(time.time() - data["start"])
             if elapsed > duration:
                 stop_progress(chat_id)
                 break
 
-            # Skip if same second
             if elapsed == last_elapsed:
                 continue
             last_elapsed = elapsed
@@ -216,19 +247,15 @@ async def _progress_loop(chat_id: int, message, track: dict):
                         parse_mode=ParseMode.HTML,
                         link_preview_options=LinkPreviewOptions(is_disabled=True),
                     )
-                flood_count = 0  # reset on success
 
             except MessageNotModified:
                 pass
             except FloodWait as e:
-                flood_count += 1
-                # If flood keeps happening, slow down to 3 sec
-                wait = e.value if e.value < 30 else 5
-                logger.warning(f"FloodWait: {wait}s (hit #{flood_count})")
-                await asyncio.sleep(wait)
+                wait_time = e.value + 2
+                logger.warning(f"FloodWait: waiting {wait_time}s")
+                await asyncio.sleep(wait_time)
             except Exception as e:
                 logger.error(f"Progress edit failed: {e}")
-                stop_progress(chat_id)
                 break
 
         except asyncio.CancelledError:
