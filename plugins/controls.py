@@ -42,11 +42,16 @@ async def resume_cmd(client, message):
 
 @Client.on_message(filters.command("skip", prefixes=PREFIXES) & ~filters.private)
 async def skip_cmd(client, message):
-    ok = await queue_manager.skip_current(message.chat.id, client)
-    if ok:
-        await message.reply_text(success_card("⏭️ Skipped"), **_html_kwargs())
-    else:
-        await message.reply_text(error_card("Queue is empty"), **_html_kwargs())
+    # Pehle check karo queue khaali to nahi
+    q = await queue_manager.get_queue(message.chat.id)
+    if not q:
+        return await message.reply_text(error_card("Queue is empty"), **_html_kwargs())
+
+    # 1. Pehle "Skipped" message bhejo
+    await message.reply_text(success_card("⏭️ Skipped"), **_html_kwargs())
+
+    # 2. Phir next song play karo (card automatically aayega)
+    await queue_manager.skip_current(message.chat.id, client)
 
 
 @Client.on_message(filters.command("stop", prefixes=PREFIXES) & ~filters.private)
@@ -75,8 +80,16 @@ async def cb_pause_resume(client, query):
 
 @Client.on_callback_query(filters.regex("^cb_skip$"))
 async def cb_skip(client, query):
-    ok = await queue_manager.skip_current(query.message.chat.id, client)
-    await query.answer("⏭️ Skipped" if ok else "Queue is empty")
+    # Pehle check karo queue khaali to nahi
+    q = await queue_manager.get_queue(query.message.chat.id)
+    if not q:
+        return await query.answer("Queue is empty", show_alert=True)
+
+    # 1. Pehle "Skipped" alert dikhao
+    await query.answer("⏭️ Skipped")
+
+    # 2. Phir next song play karo (card automatically aayega)
+    await queue_manager.skip_current(query.message.chat.id, client)
 
 
 @Client.on_callback_query(filters.regex("^cb_stop$"))
