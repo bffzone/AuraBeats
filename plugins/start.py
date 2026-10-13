@@ -13,12 +13,14 @@ LOGO_URL = "https://raw.githubusercontent.com/SakilSakil699/AuraBeats/main/asset
 def _start_kb():
     bot_link = f"https://t.me/{config.BOT_USERNAME}"
     return InlineKeyboardMarkup([
+        # Row 1: 2 buttons
         [InlineKeyboardButton("➕ Add to Group", url=f"{bot_link}?startgroup=true"),
          InlineKeyboardButton("📖 Help", callback_data="help_menu")],
-        [InlineKeyboardButton("▶️ Play", callback_data="cmd_play"),
-         InlineKeyboardButton("⚙️ Settings", callback_data="cmd_settings")],
-        [InlineKeyboardButton("👨‍💻 Developer", url=AUTHOR_TG_LINK),
-         InlineKeyboardButton("❌ Close", callback_data="cb_close")],
+        # Row 2: 2 buttons
+        [InlineKeyboardButton("⚙️ Settings", callback_data="cmd_settings"),
+         InlineKeyboardButton("👨‍💻 Developer", url=AUTHOR_TG_LINK)],
+        # Row 3: 1 button
+        [InlineKeyboardButton("❌ Close", callback_data="cb_close")],
     ])
 
 
