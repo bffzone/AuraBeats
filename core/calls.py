@@ -1,9 +1,10 @@
-"""AuraBeats - Voice Chat Engine"""
-# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
+"""AuraBeats - Voice Chat Engine (with filter support)"""
 from typing import Optional
 from pyrogram import Client
 from pytgcalls import PyTgCalls
 from pytgcalls.types import Update
+from pytgcalls.types.input_stream import InputStream
+from pytgcalls.types.input_stream.quality import HighQualityAudio
 from config import logger, WATERMARK
 
 
@@ -42,17 +43,38 @@ class CallsManager:
         except Exception as e:
             logger.error(f"Update handler: {e}")
 
-    async def play(self, chat_id: int, stream_url: str):
+    async def play(self, chat_id: int, stream_url: str, filter_name: str = ""):
+        """Play stream with optional FFmpeg filter"""
+        # Build input stream with filter if provided
+        if filter_name:
+            from filters.builder import build_filter
+            ffmpeg_filter = build_filter(filter_name)
+            if ffmpeg_filter:
+                input_stream = InputStream(
+                    MediaStream(
+                        stream_url,
+                        audio_parameters=HighQualityAudio(),
+                        ffmpeg_parameters=f"-af {ffmpeg_filter}",
+                    )
+                )
+            else:
+                input_stream = stream_url
+        else:
+            input_stream = stream_url
+
+        # If already playing, use change_stream
         if chat_id in self.active_chats:
             try:
-                await self.calls.change_stream(chat_id, stream_url)
+                await self.calls.change_stream(chat_id, input_stream)
                 return
-            except Exception:
+            except Exception as e:
+                logger.debug(f"change_stream failed: {e}")
                 try:
                     await self._leave_call(chat_id)
                 except Exception:
                     pass
-        await self.calls.play(chat_id, stream_url)
+
+        await self.calls.play(chat_id, input_stream)
         self.active_chats.add(chat_id)
 
     async def pause(self, chat_id: int):
@@ -68,8 +90,6 @@ class CallsManager:
             await self.calls.resume_stream(chat_id)
 
     async def _leave_call(self, chat_id: int):
-        """Handle both old and new PyTgCalls versions"""
-        # Try new method first (PyTgCalls 3.x)
         try:
             await self.calls.leave_call(chat_id)
             return
@@ -78,7 +98,6 @@ class CallsManager:
         except Exception as e:
             logger.debug(f"leave_call failed: {e}")
 
-        # Fallback to old method (PyTgCalls 2.x)
         try:
             await self.calls.leave_group_call(chat_id)
             return
@@ -87,17 +106,13 @@ class CallsManager:
         except Exception as e:
             logger.debug(f"leave_group_call failed: {e}")
 
-        # Last resort: try legacy name
-        try:
-            await self.calls.leave_current_group_call()
-        except Exception as e:
-            logger.debug(f"leave_current_group_call failed: {e}")
-
     async def stop(self, chat_id: int = None):
         if chat_id:
             try:
                 await self._leave_call(chat_id)
                 self.active_chats.discard(chat_id)
+                from services.filter_state import clear_filter
+                clear_filter(chat_id)
                 logger.info(f"⏹️ Left voice chat {chat_id}")
             except Exception as e:
                 logger.debug(f"stop stream: {e}")
