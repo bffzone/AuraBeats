@@ -26,6 +26,16 @@ def get_thumb_url(track: dict) -> str:
     return track.get("thumbnail", "")
 
 
+def is_paused(chat_id: int) -> bool:
+    """Check if chat is currently paused"""
+    return chat_id in _paused_chats
+
+
+def is_playing(chat_id: int) -> bool:
+    """Check if chat has active progress"""
+    return chat_id in _active_progress
+
+
 async def download_thumb(url: str, path: str) -> bool:
     try:
         async with aiohttp.ClientSession() as session:
@@ -192,14 +202,13 @@ def stop_progress(chat_id: int):
 
 
 async def _progress_loop(chat_id: int, message, track: dict):
-    """
-    Update progress bar every 10 seconds (Telegram safe limit)
-    """
+    """Update progress bar every 10 seconds with timeout-safe retry"""
     duration = track.get("duration", 0)
     if duration <= 0:
         return
 
     last_elapsed = -1
+    fail_count = 0
 
     while True:
         try:
@@ -208,7 +217,6 @@ async def _progress_loop(chat_id: int, message, track: dict):
             if chat_id not in _active_progress:
                 break
 
-            # If paused, skip updating
             if chat_id in _paused_chats:
                 continue
 
@@ -247,6 +255,7 @@ async def _progress_loop(chat_id: int, message, track: dict):
                         parse_mode=ParseMode.HTML,
                         link_preview_options=LinkPreviewOptions(is_disabled=True),
                     )
+                fail_count = 0  # reset on success
 
             except MessageNotModified:
                 pass
@@ -254,9 +263,19 @@ async def _progress_loop(chat_id: int, message, track: dict):
                 wait_time = e.value + 2
                 logger.warning(f"FloodWait: waiting {wait_time}s")
                 await asyncio.sleep(wait_time)
+            except (asyncio.TimeoutError, ConnectionError, OSError) as e:
+                fail_count += 1
+                logger.warning(f"Network timeout ({fail_count}): {e}")
+                if fail_count >= 3:
+                    logger.error("Too many timeouts, stopping progress")
+                    break
+                await asyncio.sleep(3)
             except Exception as e:
                 logger.error(f"Progress edit failed: {e}")
-                break
+                fail_count += 1
+                if fail_count >= 3:
+                    break
+                await asyncio.sleep(3)
 
         except asyncio.CancelledError:
             break
