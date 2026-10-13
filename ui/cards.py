@@ -9,12 +9,16 @@ def _credit() -> str:
     return f'\n<a href="{AUTHOR_TG_LINK}"><b>Made By {AUTHOR_NAME}</b></a>'
 
 
-def _download_link(video_id: str, bot_username: str = None) -> str:
-    """Build bot DM deeplink for downloading"""
+def _song_link(video_id: str) -> str:
     if not video_id:
         return ""
-    bot_user = bot_username or config.BOT_USERNAME
-    return f"https://t.me/{bot_user}?start=dl_{video_id}"
+    return f"https://youtu.be/{video_id}"
+
+
+def _download_link(video_id: str) -> str:
+    if not video_id:
+        return ""
+    return f"https://t.me/{config.BOT_USERNAME}?start=dl_{video_id}"
 
 
 def now_playing_card(title, artist="Unknown", duration=0, position=0,
@@ -26,20 +30,26 @@ def now_playing_card(title, artist="Unknown", duration=0, position=0,
     pct = progress_percent(position, duration)
     req = f"\n👤  <b>{truncate(requested_by, 22)}</b>" if requested_by else ""
 
-    # Download link (clickable)
-    if video_id:
-        dl_link = _download_link(video_id)
-        link_line = f'\n\n<a href="{dl_link}">⬇️ <b>Download this song</b></a>'
+    # Title as clickable YouTube link
+    song_url = _song_link(video_id)
+    if song_url:
+        title_line = f'♪  <a href="{song_url}"><b>{truncate(title, 38)}</b></a>'
     else:
-        link_line = ""
+        title_line = f"♪  <b>{truncate(title, 38)}</b>"
+
+    # Download link in place of artist
+    dl_url = _download_link(video_id)
+    if dl_url:
+        artist_line = f'💎  <a href="{dl_url}"><b>Download • HQ Audio</b></a>'
+    else:
+        artist_line = f"🎤  <i>{truncate(artist, 32)}</i>"
 
     return (
         f"🎧  <b>NOW PLAYING</b>\n\n"
-        f"♪  <b>{truncate(title, 38)}</b>\n"
-        f"🎤  <i>{truncate(artist, 32)}</i>{req}\n\n"
+        f"{title_line}\n"
+        f"{artist_line}{req}\n\n"
         f"<code>{bar}</code>  <b>{pct}%</b>\n"
         f"⏱  <code>{cur} / {tot}</code>"
-        + link_line
         + _credit()
     )
 
@@ -52,6 +62,9 @@ def queue_card(queue: list, current: int = 0) -> str:
     for i, track in enumerate(queue[:5]):
         title = truncate(track.get("title", "Unknown"), 32)
         dur = format_duration(track.get("duration", 0))
+        vid = track.get("video_id", "")
+        if vid:
+            title = f'<a href="https://youtu.be/{vid}">{title}</a>'
         icon = "▶️" if i == current else f"<code>{i + 1}.</code>"
         lines.append(f"{icon} {title} <code>{dur}</code>")
 
