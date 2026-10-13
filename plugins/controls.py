@@ -11,7 +11,7 @@ from ui.keyboards import (
 )
 from ui.cards import error_card, success_card
 from services import queue_manager
-from services.player_ui import stop_progress
+from services.player_ui import stop_progress, pause_progress, resume_progress
 
 PREFIXES = [config.PREFIX, "/", "!"]
 
@@ -26,7 +26,6 @@ def _html_kwargs():
 
 
 def _stopped_kb():
-    """Restart player keyboard after stop"""
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🎵 Play New Song", callback_data="cb_help_play")],
         [InlineKeyboardButton("❌ Close", callback_data="cb_close")],
@@ -37,6 +36,7 @@ def _stopped_kb():
 async def pause_cmd(client, message):
     try:
         await _calls().pause(message.chat.id)
+        pause_progress(message.chat.id)
         await message.reply_text(success_card("⏸️ Paused"), **_html_kwargs())
     except Exception as e:
         await message.reply_text(error_card(str(e)[:100]), **_html_kwargs())
@@ -46,6 +46,7 @@ async def pause_cmd(client, message):
 async def resume_cmd(client, message):
     try:
         await _calls().resume(message.chat.id)
+        resume_progress(message.chat.id)
         await message.reply_text(success_card("▶️ Resumed"), **_html_kwargs())
     except Exception as e:
         await message.reply_text(error_card(str(e)[:100]), **_html_kwargs())
@@ -57,6 +58,7 @@ async def skip_cmd(client, message):
     if not q:
         return await message.reply_text(error_card("Queue is empty"), **_html_kwargs())
 
+    stop_progress(message.chat.id)
     await message.reply_text(success_card("⏭️ Skipped"), **_html_kwargs())
     await queue_manager.skip_current(message.chat.id, client)
 
@@ -79,11 +81,14 @@ async def stop_cmd(client, message):
 @Client.on_callback_query(filters.regex("^cb_pause_resume$"))
 async def cb_pause_resume(client, query):
     try:
+        chat_id = query.message.chat.id
         try:
-            await _calls().pause(query.message.chat.id)
+            await _calls().pause(chat_id)
+            pause_progress(chat_id)
             await query.answer("⏸️ Paused")
         except Exception:
-            await _calls().resume(query.message.chat.id)
+            await _calls().resume(chat_id)
+            resume_progress(chat_id)
             await query.answer("▶️ Resumed")
     except Exception as e:
         await query.answer(str(e)[:50], show_alert=True)
@@ -95,6 +100,7 @@ async def cb_skip(client, query):
     if not q:
         return await query.answer("Queue is empty", show_alert=True)
 
+    stop_progress(query.message.chat.id)
     await query.answer("⏭️ Skipped")
     await queue_manager.skip_current(query.message.chat.id, client)
 
