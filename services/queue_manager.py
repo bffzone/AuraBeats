@@ -1,5 +1,4 @@
-"""AuraBeats - Queue Manager with auto-play card"""
-# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
+"""AuraBeats - Queue Manager with filter support"""
 from typing import Optional, List
 from core import db, logger
 from config import config, QueueFull
@@ -64,7 +63,7 @@ async def set_current(chat_id: int, track: dict):
 
 
 async def play_next(chat_id: int, bot_client=None) -> bool:
-    """Play next track from queue and send now playing card"""
+    """Play next track with active filter applied"""
     q = _get(chat_id)
     if not q:
         return False
@@ -77,17 +76,24 @@ async def play_next(chat_id: int, bot_client=None) -> bool:
         _current[chat_id] = track
         await db.save_queue(chat_id, q)
 
+    # Get active filter
+    try:
+        from services.filter_state import get_filter
+        filter_name = get_filter(chat_id)
+    except Exception:
+        filter_name = ""
+
     try:
         from services.downloader import get_stream_url
-        stream_url = get_stream_url(track["url"])
+        stream_url = get_stream_url(track["url"], video_id=track.get("video_id"))
     except Exception as e:
         logger.error(f"Stream: {e}")
         return await play_next(chat_id, bot_client)
 
     try:
         calls_manager = _calls()
-        await calls_manager.play(chat_id, stream_url)
-        logger.info(f"▶️ Playing: {track['title'][:40]}")
+        await calls_manager.play(chat_id, stream_url, filter_name=filter_name)
+        logger.info(f"▶️ Playing: {track['title'][:40]} (filter: {filter_name or 'none'})")
         await db.increment_stat("songs_played")
 
         if bot_client:
@@ -127,4 +133,4 @@ def remove_from_queue(chat_id: int, index: int) -> bool:
     if 0 <= index < len(q):
         q.pop(index)
         return True
-    return Falsel
+    return False
