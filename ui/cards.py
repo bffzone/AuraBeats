@@ -1,6 +1,6 @@
 """AuraBeats - Minimal Cards"""
 from config import config, AUTHOR_NAME, AUTHOR_TG_LINK
-from ui.progress import progress_bar
+from ui.progress import progress_bar, progress_percent
 from utils import format_duration, truncate
 
 
@@ -12,14 +12,16 @@ def now_playing_card(title, artist="Unknown", duration=0, position=0,
                      volume=80, loop_mode="Off", filter_name="None", requested_by=""):
     cur = format_duration(position)
     tot = format_duration(duration)
-    bar = progress_bar(position, duration, 10)
+    bar = progress_bar(position, duration, 12)
+    pct = progress_percent(position, duration)
     req = f"\n👤  <b>{truncate(requested_by, 22)}</b>" if requested_by else ""
 
     return (
         f"🎧  <b>NOW PLAYING</b>\n\n"
         f"♪  <b>{truncate(title, 38)}</b>\n"
         f"🎤  <i>{truncate(artist, 32)}</i>{req}\n\n"
-        f"{bar}  <code>{cur} / {tot}</code>"
+        f"<code>{bar}</code>  <b>{pct}%</b>\n"
+        f"⏱  <code>{cur} / {tot}</code>"
         + _credit()
     )
 
