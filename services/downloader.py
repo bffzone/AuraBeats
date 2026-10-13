@@ -1,15 +1,9 @@
-"""
-AuraBeats - Stream URL Extractor
-Author: Sakil Anowar (@YO_UR_OFFICIAL_CRUSH)
-"""
-
+"""AuraBeats - Stream URL Extractor (with POT server support)"""
 from typing import Optional
 import yt_dlp
-
 from config import logger, DownloadError
 
 
-# Quality presets map
 QUALITY_FORMATS = {
     "ultra_saver": "worstaudio[abr<=64]/worstaudio/worst",
     "saver":       "bestaudio[abr<=96]/bestaudio[abr<=128]/bestaudio",
@@ -20,7 +14,7 @@ QUALITY_FORMATS = {
 
 
 def _get_ydl_opts(quality: str = "high") -> dict:
-    """Build yt-dlp options"""
+    """Build yt-dlp options with POT provider + cookies"""
     fmt = QUALITY_FORMATS.get(quality, QUALITY_FORMATS["high"])
     return {
         "format": fmt,
@@ -32,6 +26,15 @@ def _get_ydl_opts(quality: str = "high") -> dict:
         "geo_bypass": True,
         "source_address": "0.0.0.0",
         "cachedir": False,
+        "cookiefile": "/root/AuraBeats/cookies.txt",  # Agar cookies hai
+        "extractor_args": {
+            "youtubepot-bgutilhttp": {
+                "base_url": "http://127.0.0.1:4416"
+            },
+            "youtube": {
+                "player_client": ["android", "ios", "web"],
+            },
+        },
     }
 
 
@@ -39,22 +42,20 @@ def get_stream_url(url: str, quality: str = "high") -> Optional[str]:
     """Get direct audio stream URL for playback"""
     if not url:
         raise DownloadError("Empty URL")
-    
+
     opts = _get_ydl_opts(quality)
-    
+
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
             if not info:
                 raise DownloadError("No info returned")
-            
-            # Playlist?
+
             if info.get("entries"):
                 info = info["entries"][0]
-            
+
             stream_url = info.get("url")
             if not stream_url:
-                # Sometimes need to pick format
                 formats = info.get("formats") or []
                 audio_only = [
                     f for f in formats
@@ -62,13 +63,13 @@ def get_stream_url(url: str, quality: str = "high") -> Optional[str]:
                 ]
                 if audio_only:
                     stream_url = audio_only[-1].get("url")
-            
+
             if not stream_url:
                 raise DownloadError("No audio stream found")
-            
+
             logger.debug(f"Stream URL resolved for: {info.get('title', '?')[:40]}")
             return stream_url
-    
+
     except yt_dlp.utils.DownloadError as e:
         logger.error(f"yt-dlp failed: {e}")
         raise DownloadError(str(e))
