@@ -1,47 +1,82 @@
 """AuraBeats - /start, /help, /ping"""
 import time
+import os
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, LinkPreviewOptions
 from pyrogram.enums import ParseMode
-from config import config, AUTHOR_TG_LINK
+from config import config, AUTHOR_TG_LINK, AUTHOR_GITHUB, logger
 from ui.cards import start_card, help_card
 from ui.keyboards import close_keyboard
 
-LOGO_URL = "https://raw.githubusercontent.com/SakilSakil699/AuraBeats/main/assets/images/logo.png"
+# ═══════════════════════════════════════
+#   LOGO CONFIG (Universal - works for everyone)
+# ═══════════════════════════════════════
+GITHUB_USER = "SakilSakil699"
+REPO_NAME = "AuraBeats"
+
+# GitHub raw URL (primary - works for anyone who clones/fork)
+GITHUB_RAW_URL = (
+    f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/main/assets/images/logo.png"
+)
+
+# Local path (fallback - faster if file exists)
+LOCAL_LOGO = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    "assets", "images", "logo.png"
+)
+
+
+def _get_logo_sources():
+    """Return list of logo sources to try in order"""
+    sources = []
+    # 1. Local file (fastest)
+    if os.path.exists(LOCAL_LOGO):
+        sources.append(LOCAL_LOGO)
+    # 2. GitHub raw URL (universal)
+    sources.append(GITHUB_RAW_URL)
+    return sources
 
 
 def _start_kb():
     bot_link = f"https://t.me/{config.BOT_USERNAME}"
     return InlineKeyboardMarkup([
-        # Row 1: 2 buttons
         [InlineKeyboardButton("➕ Add to Group", url=f"{bot_link}?startgroup=true"),
          InlineKeyboardButton("📖 Help", callback_data="help_menu")],
-        # Row 2: 2 buttons
         [InlineKeyboardButton("⚙️ Settings", callback_data="cmd_settings"),
          InlineKeyboardButton("👨‍💻 Developer", url=AUTHOR_TG_LINK)],
-        # Row 3: 1 button
         [InlineKeyboardButton("❌ Close", callback_data="cb_close")],
     ])
+
+
+async def _send_with_logo(message, text: str, kb):
+    """Try sending with logo from multiple sources, fallback to text"""
+    for source in _get_logo_sources():
+        try:
+            await message.reply_photo(
+                photo=source,
+                caption=text,
+                reply_markup=kb,
+                parse_mode=ParseMode.HTML,
+            )
+            return
+        except Exception as e:
+            logger.debug(f"Logo source failed ({source[:50]}): {e}")
+            continue
+
+    # Final fallback: text only
+    await message.reply_text(
+        text=text,
+        reply_markup=kb,
+        parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
+    )
 
 
 @Client.on_message(filters.command("start") & filters.private)
 async def start_cmd(client, message):
     text = start_card(message.from_user.first_name if message.from_user else "User")
     kb = _start_kb()
-    try:
-        await message.reply_photo(
-            photo=LOGO_URL,
-            caption=text,
-            reply_markup=kb,
-            parse_mode=ParseMode.HTML,
-        )
-    except Exception:
-        await message.reply_text(
-            text=text,
-            reply_markup=kb,
-            parse_mode=ParseMode.HTML,
-            link_preview_options=LinkPreviewOptions(is_disabled=True),
-        )
+    await _send_with_logo(message, text, kb)
 
 
 @Client.on_message(filters.command("help"))
