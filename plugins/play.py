@@ -1,4 +1,4 @@
-"""AuraBeats - /play with live search + queue thumbnails"""
+"""AuraBeats - /play (fast async search)"""
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import LinkPreviewOptions
@@ -11,20 +11,17 @@ from ui.cards import error_card
 
 PREFIXES = [config.PREFIX, "/", "!"]
 
-# Loading bar frames for live search
 _BAR_FRAMES = [
     "▰▱▱▱▱▱▱▱", "▰▰▱▱▱▱▱▱", "▰▰▰▱▱▱▱▱", "▰▰▰▰▱▱▱▱",
     "▰▰▰▰▰▱▱▱", "▰▰▰▰▰▰▱▱", "▰▰▰▰▰▰▰▱", "▰▰▰▰▰▰▰▰",
-    "▱▰▰▰▰▰▰▰", "▱▱▰▰▰▰▰▰", "▱▱▱▰▰▰▰▰", "▱▱▱▱▰▰▰▰",
-    "▱▱▱▱▱▰▰▰", "▱▱▱▱▱▱▰▰", "▱▱▱▱▱▱▱▰", "▱▱▱▱▱▱▱▱",
 ]
 
 
-async def search_animation(msg, query: str):
-    """Live animated searching message"""
+async def search_animation(msg, query: str, stop_event: asyncio.Event):
+    """Live animated searching - runs until stop_event is set"""
     i = 0
     try:
-        while True:
+        while not stop_event.is_set():
             bar = _BAR_FRAMES[i % len(_BAR_FRAMES)]
             text = (
                 f"🔎 <b>Searching</b>\n"
@@ -40,7 +37,10 @@ async def search_animation(msg, query: str):
             except Exception:
                 pass
             i += 1
-            await asyncio.sleep(0.4)
+            try:
+                await asyncio.wait_for(stop_event.wait(), timeout=0.35)
+            except asyncio.TimeoutError:
+                pass
     except asyncio.CancelledError:
         pass
 
@@ -61,12 +61,15 @@ async def play_cmd(client: Client, message):
         link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
 
-    # Start live search animation
-    anim_task = asyncio.create_task(search_animation(msg, query))
+    # Start animation
+    stop_event = asyncio.Event()
+    anim_task = asyncio.create_task(search_animation(msg, query, stop_event))
 
+    # Run search in thread (non-blocking)
     try:
-        track = search_youtube(query)
+        track = await asyncio.to_thread(search_youtube, query)
     except Exception as e:
+        stop_event.set()
         anim_task.cancel()
         return await msg.edit_text(
             error_card(f"Search failed: {str(e)[:100]}"),
@@ -74,6 +77,7 @@ async def play_cmd(client: Client, message):
             link_preview_options=LinkPreviewOptions(is_disabled=True),
         )
 
+    stop_event.set()
     anim_task.cancel()
 
     if not track:
