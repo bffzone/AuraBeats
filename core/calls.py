@@ -1,4 +1,4 @@
-"""AuraBeats - Voice Chat Engine (with real FFmpeg filters)"""
+"""AuraBeats - Voice Chat Engine (safe filter handling)"""
 from typing import Optional
 from pyrogram import Client
 from pytgcalls import PyTgCalls
@@ -41,51 +41,74 @@ class CallsManager:
         except Exception as e:
             logger.error(f"Update handler: {e}")
 
-    async def play(self, chat_id: int, stream_url: str, filter_name: str = ""):
-        """Play stream with optional FFmpeg filter"""
-        # Build MediaStream with filter
+    def _build_stream(self, stream_url: str, filter_name: str = ""):
+        """Build MediaStream (safe - falls back if ffmpeg params not supported)"""
+        ffmpeg_filter = ""
         if filter_name:
-            from filters.builder import build_filter
-            ffmpeg_filter = build_filter(filter_name)
-            if ffmpeg_filter:
-                logger.info(f"🎛️ Applying filter: {filter_name}")
-                try:
-                    media_stream = MediaStream(
-                        media_path=stream_url,
-                        audio_parameters=AudioQuality.HIGH,
-                        ffmpeg_parameters=f"-af {ffmpeg_filter}",
-                    )
-                except Exception as e:
-                    logger.warning(f"Filter construct failed: {e}, playing without filter")
-                    media_stream = MediaStream(
-                        media_path=stream_url,
-                        audio_parameters=AudioQuality.HIGH,
-                    )
-            else:
-                media_stream = MediaStream(
+            try:
+                from filters.builder import build_filter
+                ffmpeg_filter = build_filter(filter_name) or ""
+            except Exception as e:
+                logger.debug(f"Filter build failed: {e}")
+
+        # Try with filter first
+        if ffmpeg_filter:
+            try:
+                return MediaStream(
                     media_path=stream_url,
                     audio_parameters=AudioQuality.HIGH,
+                    ffmpeg_parameters=f"-af {ffmpeg_filter}",
                 )
-        else:
-            media_stream = MediaStream(
+            except (TypeError, ValueError, Exception) as e:
+                logger.warning(f"Filter construct failed: {e} — playing without filter")
+
+        # Without filter
+        try:
+            return MediaStream(
                 media_path=stream_url,
                 audio_parameters=AudioQuality.HIGH,
             )
+        except Exception as e:
+            logger.warning(f"MediaStream basic failed: {e}")
+            # Last resort: raw URL
+            return stream_url
 
-        # If already playing, use change_stream
+    async def play(self, chat_id: int, stream_url: str, filter_name: str = ""):
+        """
+        Play stream with optional FFmpeg filter.
+        NEVER leaves the call on filter change — only tries to swap stream.
+        """
+        media_stream = self._build_stream(stream_url, filter_name)
+
+        # Already playing — try change_stream
         if chat_id in self.active_chats:
             try:
                 await self.calls.change_stream(chat_id, media_stream)
+                logger.info(f"🎛️ Stream changed (filter: {filter_name or 'none'})")
                 return
             except Exception as e:
-                logger.debug(f"change_stream failed: {e}")
-                try:
-                    await self._leave_call(chat_id)
-                except Exception:
-                    pass
+                logger.warning(f"change_stream failed: {e}")
 
-        await self.calls.play(chat_id, media_stream)
-        self.active_chats.add(chat_id)
+                # Try alternative: replay without filter
+                try:
+                    fallback = self._build_stream(stream_url, "")
+                    await self.calls.change_stream(chat_id, fallback)
+                    logger.info("↩️ Reverted to original stream")
+                    return
+                except Exception as e2:
+                    logger.error(f"Fallback change_stream also failed: {e2}")
+                    # DON'T leave the call — just keep playing old stream
+                    logger.info("Keeping original stream playing")
+                    return
+
+        # Not playing yet — join
+        try:
+            await self.calls.play(chat_id, media_stream)
+            self.active_chats.add(chat_id)
+            logger.info(f"▶️ Joined voice chat {chat_id}")
+        except Exception as e:
+            logger.error(f"Initial play failed: {e}")
+            raise
 
     async def pause(self, chat_id: int):
         try:
@@ -100,6 +123,7 @@ class CallsManager:
             await self.calls.resume_stream(chat_id)
 
     async def _leave_call(self, chat_id: int):
+        """Explicitly leave the call (only on /stop)"""
         try:
             await self.calls.leave_call(chat_id)
             return
@@ -117,6 +141,7 @@ class CallsManager:
             logger.debug(f"leave_group_call failed: {e}")
 
     async def stop(self, chat_id: int = None):
+        """Only called on /stop command"""
         if chat_id:
             try:
                 await self._leave_call(chat_id)
