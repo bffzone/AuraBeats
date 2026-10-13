@@ -11,7 +11,10 @@ from ui.keyboards import (
 )
 from ui.cards import error_card, success_card
 from services import queue_manager
-from services.player_ui import stop_progress, pause_progress, resume_progress
+from services.player_ui import (
+    stop_progress, pause_progress, resume_progress,
+    is_paused, is_playing,
+)
 
 PREFIXES = [config.PREFIX, "/", "!"]
 
@@ -32,11 +35,19 @@ def _stopped_kb():
     ])
 
 
+# ═══════════════════════════════════════
+#   COMMANDS
+# ═══════════════════════════════════════
 @Client.on_message(filters.command("pause", prefixes=PREFIXES) & ~filters.private)
 async def pause_cmd(client, message):
+    chat_id = message.chat.id
     try:
-        await _calls().pause(message.chat.id)
-        pause_progress(message.chat.id)
+        if is_paused(chat_id):
+            return await message.reply_text(
+                "⏸️ <b>Already paused</b>", **_html_kwargs()
+            )
+        await _calls().pause(chat_id)
+        pause_progress(chat_id)
         await message.reply_text(success_card("⏸️ Paused"), **_html_kwargs())
     except Exception as e:
         await message.reply_text(error_card(str(e)[:100]), **_html_kwargs())
@@ -44,9 +55,14 @@ async def pause_cmd(client, message):
 
 @Client.on_message(filters.command("resume", prefixes=PREFIXES) & ~filters.private)
 async def resume_cmd(client, message):
+    chat_id = message.chat.id
     try:
-        await _calls().resume(message.chat.id)
-        resume_progress(message.chat.id)
+        if not is_paused(chat_id):
+            return await message.reply_text(
+                "▶️ <b>Already playing</b>", **_html_kwargs()
+            )
+        await _calls().resume(chat_id)
+        resume_progress(chat_id)
         await message.reply_text(success_card("▶️ Resumed"), **_html_kwargs())
     except Exception as e:
         await message.reply_text(error_card(str(e)[:100]), **_html_kwargs())
@@ -78,18 +94,24 @@ async def stop_cmd(client, message):
         await message.reply_text(error_card(str(e)[:100]), **_html_kwargs())
 
 
+# ═══════════════════════════════════════
+#   CALLBACKS
+# ═══════════════════════════════════════
 @Client.on_callback_query(filters.regex("^cb_pause_resume$"))
 async def cb_pause_resume(client, query):
+    """Smart toggle: pause if playing, resume if paused"""
+    chat_id = query.message.chat.id
     try:
-        chat_id = query.message.chat.id
-        try:
-            await _calls().pause(chat_id)
-            pause_progress(chat_id)
-            await query.answer("⏸️ Paused")
-        except Exception:
+        if is_paused(chat_id):
+            # Currently paused -> resume
             await _calls().resume(chat_id)
             resume_progress(chat_id)
             await query.answer("▶️ Resumed")
+        else:
+            # Currently playing -> pause
+            await _calls().pause(chat_id)
+            pause_progress(chat_id)
+            await query.answer("⏸️ Paused")
     except Exception as e:
         await query.answer(str(e)[:50], show_alert=True)
 
