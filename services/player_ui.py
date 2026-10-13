@@ -11,12 +11,9 @@ from config import logger
 from ui.cards import now_playing_card
 from ui.keyboards import player_keyboard
 
-# Active progress tasks per chat
 _active_progress = {}
-# Paused chats
 _paused_chats = {}
 
-# Telegram safe update interval (seconds)
 UPDATE_INTERVAL = 10
 
 
@@ -28,12 +25,10 @@ def get_thumb_url(track: dict) -> str:
 
 
 def is_paused(chat_id: int) -> bool:
-    """Check if chat is currently paused"""
     return chat_id in _paused_chats
 
 
 def is_playing(chat_id: int) -> bool:
-    """Check if chat has active progress"""
     return chat_id in _active_progress
 
 
@@ -51,12 +46,10 @@ async def download_thumb(url: str, path: str) -> bool:
 
 
 async def send_now_playing(client, chat_id: int, track: dict):
-    """Send now playing card and start live progress"""
     stop_progress(chat_id)
 
     caption = now_playing_card(
         title=track.get("title", "Unknown"),
-        artist=track.get("artist", "Unknown"),
         duration=track.get("duration", 0),
         position=0,
         requested_by=track.get("requested_by_name", ""),
@@ -114,7 +107,6 @@ async def send_now_playing(client, chat_id: int, track: dict):
 
 
 async def send_queue_card(client, chat_id: int, track: dict, position: int):
-    """Send added-to-queue card with thumbnail"""
     caption = (
         f"✅ <b>Added to Queue</b> <code>#{position}</code>\n\n"
         f"🎵 <b>{track['title'][:45]}</b>\n"
@@ -165,7 +157,6 @@ async def send_queue_card(client, chat_id: int, track: dict, position: int):
 
 
 def _start_progress(chat_id: int, message, track: dict):
-    """Start live progress loop"""
     task = asyncio.create_task(_progress_loop(chat_id, message, track))
     _active_progress[chat_id] = {
         "message": message,
@@ -177,14 +168,12 @@ def _start_progress(chat_id: int, message, track: dict):
 
 
 def pause_progress(chat_id: int):
-    """Pause the timer"""
     if chat_id not in _paused_chats:
         _paused_chats[chat_id] = time.time()
         logger.debug(f"⏸️ Progress paused for {chat_id}")
 
 
 def resume_progress(chat_id: int):
-    """Resume the timer"""
     if chat_id in _paused_chats:
         paused_duration = time.time() - _paused_chats.pop(chat_id)
         data = _active_progress.get(chat_id)
@@ -194,7 +183,6 @@ def resume_progress(chat_id: int):
 
 
 def stop_progress(chat_id: int):
-    """Stop progress updater"""
     _paused_chats.pop(chat_id, None)
     data = _active_progress.pop(chat_id, None)
     if data:
@@ -204,7 +192,6 @@ def stop_progress(chat_id: int):
 
 
 async def _progress_loop(chat_id: int, message, track: dict):
-    """Update progress bar every 10 seconds with timeout-safe retry"""
     duration = track.get("duration", 0)
     if duration <= 0:
         return
@@ -237,7 +224,6 @@ async def _progress_loop(chat_id: int, message, track: dict):
 
             new_caption = now_playing_card(
                 title=track.get("title", "Unknown"),
-                artist=track.get("artist", "Unknown"),
                 duration=duration,
                 position=elapsed,
                 requested_by=track.get("requested_by_name", ""),
