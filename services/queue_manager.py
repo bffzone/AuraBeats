@@ -1,4 +1,4 @@
-"""AuraBeats - Queue Manager"""
+"""AuraBeats - Queue Manager with auto-play card"""
 from typing import Optional, List
 from core import db, logger
 from config import config, QueueFull
@@ -62,10 +62,12 @@ async def set_current(chat_id: int, track: dict):
     _current[chat_id] = track
 
 
-async def play_next(chat_id: int) -> bool:
+async def play_next(chat_id: int, bot_client=None) -> bool:
+    """Play next track from queue and send now playing card"""
     q = _get(chat_id)
     if not q:
         return False
+
     loop = _loop_mode.get(chat_id, 0)
     if loop == 1 and _current.get(chat_id):
         track = _current[chat_id]
@@ -73,21 +75,86 @@ async def play_next(chat_id: int) -> bool:
         track = q.pop(0)
         _current[chat_id] = track
         await db.save_queue(chat_id, q)
+
     try:
         from services.downloader import get_stream_url
         stream_url = get_stream_url(track["url"])
     except Exception as e:
         logger.error(f"Stream: {e}")
-        return await play_next(chat_id)
+        return await play_next(chat_id, bot_client)
+
     try:
         calls_manager = _calls()
         await calls_manager.play(chat_id, stream_url)
-        logger.info(f"Playing: {track['title'][:40]}")
+        logger.info(f"▶️ Playing: {track['title'][:40]}")
         await db.increment_stat("songs_played")
+
+        # Send now playing card for queue playback
+        if bot_client:
+            try:
+                await _send_now_playing_card(bot_client, chat_id, track)
+            except Exception as e:
+                logger.debug(f"Card send failed: {e}")
+
         return True
     except Exception as e:
         logger.error(f"Play: {e}")
         return False
+
+
+async def _send_now_playing_card(bot_client, chat_id: int, track: dict):
+    """Send now playing card with thumbnail"""
+    import os
+    import aiohttp
+    from pyrogram.enums import ParseMode
+    from ui.cards import now_playing_card
+    from ui.keyboards import player_keyboard
+
+    card_text = now_playing_card(
+        title=track.get("title", "Unknown"),
+        artist=track.get("artist", "Unknown"),
+        duration=track.get("duration", 0),
+        requested_by=track.get("requested_by_name", ""),
+    )
+
+    vid = track.get("video_id", "")
+    thumb_url = f"https://img.youtube.com/vi/{vid}/maxresdefault.jpg" if vid else track.get("thumbnail", "")
+    thumb_path = f"/tmp/qp_{vid or 'x'}.jpg"
+
+    sent = False
+    if thumb_url:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(thumb_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    if resp.status == 200:
+                        with open(thumb_path, "wb") as f:
+                            f.write(await resp.read())
+
+                        await bot_client.send_photo(
+                            chat_id=chat_id,
+                            photo=thumb_path,
+                            caption=card_text,
+                            reply_markup=player_keyboard(),
+                            parse_mode=ParseMode.HTML,
+                        )
+                        sent = True
+        except Exception as e:
+            logger.debug(f"Queue thumb send failed: {e}")
+        finally:
+            try:
+                os.remove(thumb_path)
+            except Exception:
+                pass
+
+    if not sent:
+        from pyrogram.types import LinkPreviewOptions
+        await bot_client.send_message(
+            chat_id=chat_id,
+            text=card_text,
+            reply_markup=player_keyboard(),
+            parse_mode=ParseMode.HTML,
+            link_preview_options=LinkPreviewOptions(is_disabled=True),
+        )
 
 
 async def skip_current(chat_id: int) -> bool:
