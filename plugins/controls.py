@@ -8,6 +8,7 @@ from ui.keyboards import (
 )
 from ui.cards import error_card, success_card
 from services import queue_manager
+from services.player_ui import stop_progress
 
 PREFIXES = [config.PREFIX, "/", "!"]
 
@@ -41,7 +42,7 @@ async def resume_cmd(client, message):
 
 @Client.on_message(filters.command("skip", prefixes=PREFIXES) & ~filters.private)
 async def skip_cmd(client, message):
-    ok = await queue_manager.skip_current(message.chat.id)
+    ok = await queue_manager.skip_current(message.chat.id, client)
     if ok:
         await message.reply_text(success_card("⏭️ Skipped"), **_html_kwargs())
     else:
@@ -51,6 +52,7 @@ async def skip_cmd(client, message):
 @Client.on_message(filters.command("stop", prefixes=PREFIXES) & ~filters.private)
 async def stop_cmd(client, message):
     try:
+        stop_progress(message.chat.id)
         await _calls().stop(message.chat.id)
         await queue_manager.clear_queue(message.chat.id)
         await message.reply_text(success_card("⏹️ Stopped"), **_html_kwargs())
@@ -73,13 +75,14 @@ async def cb_pause_resume(client, query):
 
 @Client.on_callback_query(filters.regex("^cb_skip$"))
 async def cb_skip(client, query):
-    ok = await queue_manager.skip_current(query.message.chat.id)
+    ok = await queue_manager.skip_current(query.message.chat.id, client)
     await query.answer("⏭️ Skipped" if ok else "Queue is empty")
 
 
 @Client.on_callback_query(filters.regex("^cb_stop$"))
 async def cb_stop(client, query):
     try:
+        stop_progress(query.message.chat.id)
         await _calls().stop(query.message.chat.id)
         await queue_manager.clear_queue(query.message.chat.id)
         await query.message.edit_text(success_card("⏹️ Stopped"), **_html_kwargs())
