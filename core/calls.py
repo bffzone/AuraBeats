@@ -1,4 +1,5 @@
-"""AuraBeats - Voice Chat Engine (safe filter handling)"""
+"""AuraBeats - Voice Chat Engine (clean rejoin for filters)"""
+import asyncio
 from typing import Optional
 from pyrogram import Client
 from pytgcalls import PyTgCalls
@@ -42,7 +43,7 @@ class CallsManager:
             logger.error(f"Update handler: {e}")
 
     def _build_stream(self, stream_url: str, filter_name: str = ""):
-        """Build MediaStream (safe - falls back if ffmpeg params not supported)"""
+        """Build MediaStream safely"""
         ffmpeg_filter = ""
         if filter_name:
             try:
@@ -51,7 +52,6 @@ class CallsManager:
             except Exception as e:
                 logger.debug(f"Filter build failed: {e}")
 
-        # Try with filter first
         if ffmpeg_filter:
             try:
                 return MediaStream(
@@ -59,55 +59,65 @@ class CallsManager:
                     audio_parameters=AudioQuality.HIGH,
                     ffmpeg_parameters=f"-af {ffmpeg_filter}",
                 )
-            except (TypeError, ValueError, Exception) as e:
-                logger.warning(f"Filter construct failed: {e} — playing without filter")
+            except Exception as e:
+                logger.warning(f"Filter construct failed: {e}")
 
-        # Without filter
         try:
             return MediaStream(
                 media_path=stream_url,
                 audio_parameters=AudioQuality.HIGH,
             )
-        except Exception as e:
-            logger.warning(f"MediaStream basic failed: {e}")
-            # Last resort: raw URL
+        except Exception:
             return stream_url
 
     async def play(self, chat_id: int, stream_url: str, filter_name: str = ""):
         """
-        Play stream with optional FFmpeg filter.
-        NEVER leaves the call on filter change — only tries to swap stream.
+        Play stream with filter.
+        Strategy:
+        1. If already playing and no filter change → change_stream (fast)
+        2. If filter change → clean leave + rejoin
+        3. If rejoin fails → fallback without filter
         """
         media_stream = self._build_stream(stream_url, filter_name)
 
-        # Already playing — try change_stream
+        # ─── Already playing ───
         if chat_id in self.active_chats:
-            try:
-                await self.calls.change_stream(chat_id, media_stream)
-                logger.info(f"🎛️ Stream changed (filter: {filter_name or 'none'})")
-                return
-            except Exception as e:
-                logger.warning(f"change_stream failed: {e}")
-
-                # Try alternative: replay without filter
+            # If no filter → try fast change_stream
+            if not filter_name:
                 try:
-                    fallback = self._build_stream(stream_url, "")
-                    await self.calls.change_stream(chat_id, fallback)
-                    logger.info("↩️ Reverted to original stream")
+                    await self.calls.change_stream(chat_id, media_stream)
+                    logger.info("🎵 Stream changed (no filter)")
                     return
-                except Exception as e2:
-                    logger.error(f"Fallback change_stream also failed: {e2}")
-                    # DON'T leave the call — just keep playing old stream
-                    logger.info("Keeping original stream playing")
-                    return
+                except Exception as e:
+                    logger.debug(f"change_stream failed: {e}")
 
-        # Not playing yet — join
+            # Filter change → clean leave + rejoin
+            logger.info(f"🎛️ Filter '{filter_name}' → clean rejoin")
+            try:
+                await self._leave_call(chat_id)
+            except Exception as e:
+                logger.debug(f"leave failed: {e}")
+            self.active_chats.discard(chat_id)
+            await asyncio.sleep(0.5)
+
+        # ─── Join with filter ───
         try:
             await self.calls.play(chat_id, media_stream)
             self.active_chats.add(chat_id)
-            logger.info(f"▶️ Joined voice chat {chat_id}")
+            logger.info(f"▶️ Joined with filter: {filter_name or 'none'}")
+            return
         except Exception as e:
-            logger.error(f"Initial play failed: {e}")
+            logger.warning(f"Play with filter failed: {e}")
+
+        # ─── Fallback: without filter ───
+        try:
+            fallback = self._build_stream(stream_url, "")
+            await self.calls.play(chat_id, fallback)
+            self.active_chats.add(chat_id)
+            logger.info("↩️ Fallback: playing without filter")
+            return
+        except Exception as e:
+            logger.error(f"Fallback play failed: {e}")
             raise
 
     async def pause(self, chat_id: int):
@@ -123,7 +133,6 @@ class CallsManager:
             await self.calls.resume_stream(chat_id)
 
     async def _leave_call(self, chat_id: int):
-        """Explicitly leave the call (only on /stop)"""
         try:
             await self.calls.leave_call(chat_id)
             return
@@ -141,7 +150,6 @@ class CallsManager:
             logger.debug(f"leave_group_call failed: {e}")
 
     async def stop(self, chat_id: int = None):
-        """Only called on /stop command"""
         if chat_id:
             try:
                 await self._leave_call(chat_id)
