@@ -6,7 +6,7 @@ from utils import format_duration, truncate
 
 
 def _credit() -> str:
-    return f'\n<a href="{AUTHOR_TG_LINK}">🎧 {AUTHOR_NAME}</a>'
+    return f'\n<a href="{AUTHOR_TG_LINK}"><b>Made By {AUTHOR_NAME}</b></a>'
 
 
 def now_playing_card(title, artist="Unknown", duration=0, position=0,
