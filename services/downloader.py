@@ -4,17 +4,18 @@ import yt_dlp
 from config import logger, DownloadError
 
 
+# Simple format strings - most compatible
 QUALITY_FORMATS = {
-    "ultra_saver": "worstaudio[abr<=64]/worstaudio/worst",
-    "saver":       "bestaudio[abr<=96]/bestaudio[abr<=128]/bestaudio",
-    "normal":      "bestaudio[abr<=128]/bestaudio",
-    "high":        "bestaudio[abr>=192]/bestaudio",
-    "lossless":    "bestaudio[ext=flac]/bestaudio[abr>=256]/bestaudio",
+    "ultra_saver": "worstaudio/worst",
+    "saver":       "worstaudio/worst",
+    "normal":      "bestaudio/best",
+    "high":        "bestaudio/best",
+    "lossless":    "bestaudio/best",
 }
 
 
 def _get_ydl_opts(quality: str = "high") -> dict:
-    """Build yt-dlp options with POT provider + cookies"""
+    """Build yt-dlp options with POT provider"""
     fmt = QUALITY_FORMATS.get(quality, QUALITY_FORMATS["high"])
     return {
         "format": fmt,
@@ -26,13 +27,9 @@ def _get_ydl_opts(quality: str = "high") -> dict:
         "geo_bypass": True,
         "source_address": "0.0.0.0",
         "cachedir": False,
-        "cookiefile": "/root/AuraBeats/cookies.txt",  # Agar cookies hai
         "extractor_args": {
             "youtubepot-bgutilhttp": {
                 "base_url": "http://127.0.0.1:4416"
-            },
-            "youtube": {
-                "player_client": ["android", "ios", "web"],
             },
         },
     }
@@ -54,15 +51,37 @@ def get_stream_url(url: str, quality: str = "high") -> Optional[str]:
             if info.get("entries"):
                 info = info["entries"][0]
 
+            # Method 1: Direct URL from chosen format
             stream_url = info.get("url")
+
+            # Method 2: Find best audio format
             if not stream_url:
                 formats = info.get("formats") or []
+                # Prefer audio-only formats
                 audio_only = [
                     f for f in formats
-                    if f.get("acodec") != "none" and f.get("vcodec") == "none"
+                    if f.get("acodec") and f.get("acodec") != "none"
+                    and (not f.get("vcodec") or f.get("vcodec") == "none")
                 ]
                 if audio_only:
-                    stream_url = audio_only[-1].get("url")
+                    # Sort by bitrate/quality, take best
+                    audio_only.sort(
+                        key=lambda x: x.get("abr") or x.get("tbr") or 0,
+                        reverse=True,
+                    )
+                    stream_url = audio_only[0].get("url")
+
+            # Method 3: Any format with audio
+            if not stream_url:
+                formats = info.get("formats") or []
+                for f in formats:
+                    if f.get("url"):
+                        stream_url = f["url"]
+                        break
+
+            # Method 4: request download URL
+            if not stream_url:
+                stream_url = info.get("webpage_url") or info.get("original_url")
 
             if not stream_url:
                 raise DownloadError("No audio stream found")
