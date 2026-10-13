@@ -11,19 +11,38 @@ from ui.cards import error_card
 
 PREFIXES = [config.PREFIX, "/", "!"]
 
+# Loading bar frames for live search
+_BAR_FRAMES = [
+    "▰▱▱▱▱▱▱▱", "▰▰▱▱▱▱▱▱", "▰▰▰▱▱▱▱▱", "▰▰▰▰▱▱▱▱",
+    "▰▰▰▰▰▱▱▱", "▰▰▰▰▰▰▱▱", "▰▰▰▰▰▰▰▱", "▰▰▰▰▰▰▰▰",
+    "▱▰▰▰▰▰▰▰", "▱▱▰▰▰▰▰▰", "▱▱▱▰▰▰▰▰", "▱▱▱▱▰▰▰▰",
+    "▱▱▱▱▱▰▰▰", "▱▱▱▱▱▱▰▰", "▱▱▱▱▱▱▱▰", "▱▱▱▱▱▱▱▱",
+]
 
-async def live_search(msg, query: str):
-    frames = [
-        f"🔍 <b>Searching</b> <code>{query}</code> .",
-        f"🔍 <b>Searching</b> <code>{query}</code> ..",
-        f"🔍 <b>Searching</b> <code>{query}</code> ...",
-    ]
-    for f in frames:
-        try:
-            await msg.edit_text(f, parse_mode=ParseMode.HTML)
-        except Exception:
-            pass
-        await asyncio.sleep(0.6)
+
+async def search_animation(msg, query: str):
+    """Live animated searching message"""
+    i = 0
+    try:
+        while True:
+            bar = _BAR_FRAMES[i % len(_BAR_FRAMES)]
+            text = (
+                f"🔎 <b>Searching</b>\n"
+                f"<code>{query[:40]}</code>\n"
+                f"<code>{bar}</code>"
+            )
+            try:
+                await msg.edit_text(
+                    text,
+                    parse_mode=ParseMode.HTML,
+                    link_preview_options=LinkPreviewOptions(is_disabled=True),
+                )
+            except Exception:
+                pass
+            i += 1
+            await asyncio.sleep(0.4)
+    except asyncio.CancelledError:
+        pass
 
 
 @Client.on_message(filters.command("play", prefixes=PREFIXES) & ~filters.private)
@@ -37,21 +56,25 @@ async def play_cmd(client: Client, message):
 
     query = message.text.split(None, 1)[1].strip()
     msg = await message.reply_text(
-        f"🔍 <b>Searching</b> <code>{query}</code>...",
+        f"🔎 <b>Searching</b>\n<code>{query[:40]}</code>\n<code>▱▱▱▱▱▱▱▱</code>",
         parse_mode=ParseMode.HTML,
         link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
 
-    asyncio.create_task(live_search(msg, query))
+    # Start live search animation
+    anim_task = asyncio.create_task(search_animation(msg, query))
 
     try:
         track = search_youtube(query)
     except Exception as e:
+        anim_task.cancel()
         return await msg.edit_text(
             error_card(f"Search failed: {str(e)[:100]}"),
             parse_mode=ParseMode.HTML,
             link_preview_options=LinkPreviewOptions(is_disabled=True),
         )
+
+    anim_task.cancel()
 
     if not track:
         return await msg.edit_text(
