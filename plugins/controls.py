@@ -1,12 +1,11 @@
-"""AuraBeats - Player Controls & Callbacks"""
-# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
+"""AuraBeats - Player Controls & Callbacks (with filters)"""
 from pyrogram import Client, filters
 from pyrogram.types import (
     Message, CallbackQuery, LinkPreviewOptions,
     InlineKeyboardMarkup, InlineKeyboardButton,
 )
 from pyrogram.enums import ParseMode
-from config import config
+from config import config, logger
 from ui.keyboards import (
     player_keyboard, more_menu, filters_menu, volume_menu, queue_keyboard,
 )
@@ -26,7 +25,10 @@ def _calls():
 
 
 def _html_kwargs():
-    return {"parse_mode": ParseMode.HTML, "link_preview_options": LinkPreviewOptions(is_disabled=True)}
+    return {
+        "parse_mode": ParseMode.HTML,
+        "link_preview_options": LinkPreviewOptions(is_disabled=True),
+    }
 
 
 def _stopped_kb():
@@ -44,9 +46,7 @@ async def pause_cmd(client, message):
     chat_id = message.chat.id
     try:
         if is_paused(chat_id):
-            return await message.reply_text(
-                "⏸️ <b>Already paused</b>", **_html_kwargs()
-            )
+            return await message.reply_text("⏸️ <b>Already paused</b>", **_html_kwargs())
         await _calls().pause(chat_id)
         pause_progress(chat_id)
         await message.reply_text(success_card("⏸️ Paused"), **_html_kwargs())
@@ -59,9 +59,7 @@ async def resume_cmd(client, message):
     chat_id = message.chat.id
     try:
         if not is_paused(chat_id):
-            return await message.reply_text(
-                "▶️ <b>Already playing</b>", **_html_kwargs()
-            )
+            return await message.reply_text("▶️ <b>Already playing</b>", **_html_kwargs())
         await _calls().resume(chat_id)
         resume_progress(chat_id)
         await message.reply_text(success_card("▶️ Resumed"), **_html_kwargs())
@@ -74,7 +72,6 @@ async def skip_cmd(client, message):
     q = await queue_manager.get_queue(message.chat.id)
     if not q:
         return await message.reply_text(error_card("Queue is empty"), **_html_kwargs())
-
     stop_progress(message.chat.id)
     await message.reply_text(success_card("⏭️ Skipped"), **_html_kwargs())
     await queue_manager.skip_current(message.chat.id, client)
@@ -100,16 +97,13 @@ async def stop_cmd(client, message):
 # ═══════════════════════════════════════
 @Client.on_callback_query(filters.regex("^cb_pause_resume$"))
 async def cb_pause_resume(client, query):
-    """Smart toggle: pause if playing, resume if paused"""
     chat_id = query.message.chat.id
     try:
         if is_paused(chat_id):
-            # Currently paused -> resume
             await _calls().resume(chat_id)
             resume_progress(chat_id)
             await query.answer("▶️ Resumed")
         else:
-            # Currently playing -> pause
             await _calls().pause(chat_id)
             pause_progress(chat_id)
             await query.answer("⏸️ Paused")
@@ -122,7 +116,6 @@ async def cb_skip(client, query):
     q = await queue_manager.get_queue(query.message.chat.id)
     if not q:
         return await query.answer("Queue is empty", show_alert=True)
-
     stop_progress(query.message.chat.id)
     await query.answer("⏭️ Skipped")
     await queue_manager.skip_current(query.message.chat.id, client)
@@ -160,8 +153,9 @@ async def cb_queue(client, query):
 @Client.on_callback_query(filters.regex("^cb_filters_menu$"))
 async def cb_filters_menu(client, query):
     await query.message.edit_text(
-        "🎛️ <b>Audio Filters</b>\n\nChoose a filter:",
-        reply_markup=filters_menu(), **_html_kwargs()
+        "🎛️ <b>Audio Filters</b>\n\nChoose a filter to apply:",
+        reply_markup=filters_menu(),
+        **_html_kwargs()
     )
     await query.answer()
 
@@ -170,7 +164,8 @@ async def cb_filters_menu(client, query):
 async def cb_volume_menu(client, query):
     await query.message.edit_text(
         "🔊 <b>Volume Control</b>",
-        reply_markup=volume_menu(), **_html_kwargs()
+        reply_markup=volume_menu(),
+        **_html_kwargs()
     )
     await query.answer()
 
@@ -179,7 +174,8 @@ async def cb_volume_menu(client, query):
 async def cb_more_menu(client, query):
     await query.message.edit_text(
         "⋯ <b>More Options</b>",
-        reply_markup=more_menu(), **_html_kwargs()
+        reply_markup=more_menu(),
+        **_html_kwargs()
     )
     await query.answer()
 
@@ -197,20 +193,61 @@ async def cb_back_player(client, query):
             duration=current.get("duration", 0),
             requested_by=current.get("requested_by_name", ""),
         ),
-        reply_markup=player_keyboard(), **_html_kwargs()
+        reply_markup=player_keyboard(),
+        **_html_kwargs()
     )
     await query.answer()
 
 
+# ═══════════════════════════════════════
+#   FILTER APPLY (REAL FFmpeg)
+# ═══════════════════════════════════════
 @Client.on_callback_query(filters.regex("^cb_f_(.+)$"))
 async def cb_filter_apply(client, query):
+    """Apply real FFmpeg filter and re-stream current song"""
     fname = query.matches[0].group(1)
+    chat_id = query.message.chat.id
+
+    # Clear filter
     if fname == "clear":
-        await query.answer("❌ Filters cleared")
+        from services.filter_state import clear_filter
+        clear_filter(chat_id)
+        await query.answer("❌ All filters cleared")
         return
-    await query.answer(f"🎛️ {fname.title()} applied")
+
+    # Validate filter
+    from filters.builder import build_filter, get_filter_display_name
+    filter_str = build_filter(fname)
+    if not filter_str:
+        return await query.answer(f"❌ Unknown filter: {fname}", show_alert=True)
+
+    # Set filter state
+    from services.filter_state import set_filter
+    set_filter(chat_id, fname)
+
+    # Re-apply current track with filter
+    current = queue_manager.get_current(chat_id)
+    if not current:
+        await query.answer(f"🎛️ {get_filter_display_name(fname)} set for next track")
+        return
+
+    try:
+        from services.downloader import get_stream_url
+        url = get_stream_url(current["url"], video_id=current.get("video_id"))
+        calls = _calls()
+        await calls.play(chat_id, url, filter_name=fname)
+
+        display = get_filter_display_name(fname)
+        await query.answer(f"🎛️ {display} applied ✓")
+        logger.info(f"Filter '{fname}' applied in {chat_id}")
+    except Exception as e:
+        logger.error(f"Filter apply failed: {e}")
+        await query.answer(f"⚠️ {fname} set (couldn't re-apply live)")
 
 
+# ═══════════════════════════════════════
+#   VOLUME CONTROLS
+# ═══════════════════════════════════════
 @Client.on_callback_query(filters.regex("^cb_vol_(.+)$"))
 async def cb_vol(client, query):
     action = query.matches[0].group(1)
@@ -245,6 +282,11 @@ async def cb_close(client, query):
 @Client.on_callback_query(filters.regex("^cb_(lyrics|save|speed|stats|info)$"))
 async def cb_misc(client, query):
     action = query.matches[0].group(1)
-    msgs = {"lyrics": "📜 Soon", "save": "❤️ Saved", "speed": "⚡ Soon",
-            "stats": "📊 Soon", "info": "ℹ️ AuraBeats v1.0.0"}
+    msgs = {
+        "lyrics": "📜 Coming soon",
+        "save": "❤️ Saved to favorites",
+        "speed": "⚡ Coming soon",
+        "stats": "📊 Coming soon",
+        "info": "ℹ️ AuraBeats v1.0.0",
+    }
     await query.answer(msgs.get(action, "OK"), show_alert=True)
