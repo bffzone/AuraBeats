@@ -42,14 +42,32 @@ class CallsManager:
             logger.error(f"Update handler: {e}")
 
     async def play(self, chat_id: int, stream_url: str):
+        if chat_id in self.active_chats:
+            # Try change_stream first (for new version)
+            try:
+                await self.calls.change_stream(chat_id, stream_url)
+                return
+            except Exception:
+                try:
+                    await self.calls.leave_group_call(chat_id)
+                except Exception:
+                    pass
         await self.calls.play(chat_id, stream_url)
         self.active_chats.add(chat_id)
 
     async def pause(self, chat_id: int):
-        await self.calls.pause_stream(chat_id)
+        # PyTgCalls 3.x: pause()  |  2.x: pause_stream()
+        try:
+            await self.calls.pause(chat_id)
+        except AttributeError:
+            await self.calls.pause_stream(chat_id)
 
     async def resume(self, chat_id: int):
-        await self.calls.resume_stream(chat_id)
+        # PyTgCalls 3.x: resume()  |  2.x: resume_stream()
+        try:
+            await self.calls.resume(chat_id)
+        except AttributeError:
+            await self.calls.resume_stream(chat_id)
 
     async def stop(self, chat_id: int = None):
         if chat_id:
