@@ -1,10 +1,8 @@
-"""AuraBeats - Voice Chat Engine (with filter support)"""
+"""AuraBeats - Voice Chat Engine (with real FFmpeg filters)"""
 from typing import Optional
 from pyrogram import Client
 from pytgcalls import PyTgCalls
-from pytgcalls.types import Update
-from pytgcalls.types.input_stream import InputStream
-from pytgcalls.types.input_stream.quality import HighQualityAudio
+from pytgcalls.types import Update, MediaStream, AudioQuality
 from config import logger, WATERMARK
 
 
@@ -45,27 +43,39 @@ class CallsManager:
 
     async def play(self, chat_id: int, stream_url: str, filter_name: str = ""):
         """Play stream with optional FFmpeg filter"""
-        # Build input stream with filter if provided
+        # Build MediaStream with filter
         if filter_name:
             from filters.builder import build_filter
             ffmpeg_filter = build_filter(filter_name)
             if ffmpeg_filter:
-                input_stream = InputStream(
-                    MediaStream(
-                        stream_url,
-                        audio_parameters=HighQualityAudio(),
+                logger.info(f"🎛️ Applying filter: {filter_name}")
+                try:
+                    media_stream = MediaStream(
+                        media_path=stream_url,
+                        audio_parameters=AudioQuality.HIGH,
                         ffmpeg_parameters=f"-af {ffmpeg_filter}",
                     )
-                )
+                except Exception as e:
+                    logger.warning(f"Filter construct failed: {e}, playing without filter")
+                    media_stream = MediaStream(
+                        media_path=stream_url,
+                        audio_parameters=AudioQuality.HIGH,
+                    )
             else:
-                input_stream = stream_url
+                media_stream = MediaStream(
+                    media_path=stream_url,
+                    audio_parameters=AudioQuality.HIGH,
+                )
         else:
-            input_stream = stream_url
+            media_stream = MediaStream(
+                media_path=stream_url,
+                audio_parameters=AudioQuality.HIGH,
+            )
 
         # If already playing, use change_stream
         if chat_id in self.active_chats:
             try:
-                await self.calls.change_stream(chat_id, input_stream)
+                await self.calls.change_stream(chat_id, media_stream)
                 return
             except Exception as e:
                 logger.debug(f"change_stream failed: {e}")
@@ -74,7 +84,7 @@ class CallsManager:
                 except Exception:
                     pass
 
-        await self.calls.play(chat_id, input_stream)
+        await self.calls.play(chat_id, media_stream)
         self.active_chats.add(chat_id)
 
     async def pause(self, chat_id: int):
