@@ -1,5 +1,5 @@
-"""AuraBeats - /play (fast async search)"""
 # Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
+"""AuraBeats - /play (auto-delete command)"""
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import LinkPreviewOptions
@@ -19,7 +19,6 @@ _BAR_FRAMES = [
 
 
 async def search_animation(msg, query: str, stop_event: asyncio.Event):
-    """Live animated searching - runs until stop_event is set"""
     i = 0
     try:
         while not stop_event.is_set():
@@ -46,9 +45,17 @@ async def search_animation(msg, query: str, stop_event: asyncio.Event):
         pass
 
 
+async def _safe_delete(message):
+    try:
+        await message.delete()
+    except Exception as e:
+        logger.debug(f"Delete failed: {e}")
+
+
 @Client.on_message(filters.command("play", prefixes=PREFIXES) & ~filters.private)
 async def play_cmd(client: Client, message):
     if len(message.command) < 2:
+        await _safe_delete(message)
         return await message.reply_text(
             "❌ <b>Usage:</b> <code>.play &lt;song&gt;</code>",
             parse_mode=ParseMode.HTML,
@@ -56,24 +63,31 @@ async def play_cmd(client: Client, message):
         )
 
     query = message.text.split(None, 1)[1].strip()
-    msg = await message.reply_text(
-        f"🔎 <b>Searching</b>\n<code>{query[:40]}</code>\n<code>▱▱▱▱▱▱▱▱</code>",
+
+    await _safe_delete(message)
+
+    msg = await client.send_message(
+        chat_id=message.chat.id,
+        text=f"🔎 <b>Searching</b>\n<code>{query[:40]}</code>\n<code>▱▱▱▱▱▱▱▱</code>",
         parse_mode=ParseMode.HTML,
         link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
 
-    # Start animation
     stop_event = asyncio.Event()
     anim_task = asyncio.create_task(search_animation(msg, query, stop_event))
 
-    # Run search in thread (non-blocking)
     try:
         track = await asyncio.to_thread(search_youtube, query)
     except Exception as e:
         stop_event.set()
         anim_task.cancel()
-        return await msg.edit_text(
-            error_card(f"Search failed: {str(e)[:100]}"),
+        try:
+            await msg.delete()
+        except Exception:
+            pass
+        return await client.send_message(
+            chat_id=message.chat.id,
+            text=error_card(f"Search failed: {str(e)[:100]}"),
             parse_mode=ParseMode.HTML,
             link_preview_options=LinkPreviewOptions(is_disabled=True),
         )
@@ -82,8 +96,13 @@ async def play_cmd(client: Client, message):
     anim_task.cancel()
 
     if not track:
-        return await msg.edit_text(
-            error_card("No results found 😕"),
+        try:
+            await msg.delete()
+        except Exception:
+            pass
+        return await client.send_message(
+            chat_id=message.chat.id,
+            text=error_card("No results found 😕"),
             parse_mode=ParseMode.HTML,
             link_preview_options=LinkPreviewOptions(is_disabled=True),
         )
@@ -105,26 +124,38 @@ async def play_cmd(client: Client, message):
                 user.id if user else 0,
                 user_name,
             )
-            await msg.delete()
+            try:
+                await msg.delete()
+            except Exception:
+                pass
             await send_queue_card(client, chat_id, track, pos + 1)
         else:
             await music.play_now(track, bot_client=client)
-            await msg.delete()
+            try:
+                await msg.delete()
+            except Exception:
+                pass
             await send_now_playing(client, chat_id, track)
 
     except Exception as e:
         logger.exception(f"Play failed: {e}")
         err = str(e)
+        try:
+            await msg.delete()
+        except Exception:
+            pass
+
         if "CHANNEL_INVALID" in err or "PEER_ID_INVALID" in err:
-            await msg.edit_text(
-                "<b>❌  Assistant not in group</b>\n\n"
-                "Send <code>/addassistant</code> to fix.",
+            await client.send_message(
+                chat_id=chat_id,
+                text="<b>❌  Assistant not in group</b>\n\nSend <code>/addassistant</code> to fix.",
                 parse_mode=ParseMode.HTML,
                 link_preview_options=LinkPreviewOptions(is_disabled=True),
             )
         else:
-            await msg.edit_text(
-                error_card(err[:150]),
+            await client.send_message(
+                chat_id=chat_id,
+                text=error_card(err[:150]),
                 parse_mode=ParseMode.HTML,
                 link_preview_options=LinkPreviewOptions(is_disabled=True),
             )
