@@ -20,7 +20,7 @@ class AuraBeats:
         logger.info("=" * 50)
         logger.info(f"  AuraBeats v{config.VERSION}")
         logger.info(f"  Made By Sakil Anowar")
-        logger.info(f"  @YO_UR_OFFICIAL_CRUSH")
+        logger.info(f"  @Vip_Sakil_Bio")
         logger.info("=" * 50)
         logger.debug(f"[{WATERMARK}]")
 
@@ -48,6 +48,7 @@ class AuraBeats:
 
         logger.info("Starting voice engine...")
         await calls_manager.initialize(self.assistant)
+        calls_manager.bot = self.bot          # ← Ye line add karo
         logger.success("PyTgCalls ready")
 
         logger.success(f"{config.BOT_NAME} is LIVE!")
