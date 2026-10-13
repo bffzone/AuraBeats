@@ -9,13 +9,29 @@ def _credit() -> str:
     return f'\n<a href="{AUTHOR_TG_LINK}"><b>Made By {AUTHOR_NAME}</b></a>'
 
 
+def _download_link(video_id: str, bot_username: str = None) -> str:
+    """Build bot DM deeplink for downloading"""
+    if not video_id:
+        return ""
+    bot_user = bot_username or config.BOT_USERNAME
+    return f"https://t.me/{bot_user}?start=dl_{video_id}"
+
+
 def now_playing_card(title, artist="Unknown", duration=0, position=0,
-                     volume=80, loop_mode="Off", filter_name="None", requested_by=""):
+                     volume=80, loop_mode="Off", filter_name="None",
+                     requested_by="", video_id=""):
     cur = format_duration(position)
     tot = format_duration(duration)
     bar = progress_bar(position, duration, 12)
     pct = progress_percent(position, duration)
     req = f"\n👤  <b>{truncate(requested_by, 22)}</b>" if requested_by else ""
+
+    # Download link (clickable)
+    if video_id:
+        dl_link = _download_link(video_id)
+        link_line = f'\n\n<a href="{dl_link}">⬇️ <b>Download this song</b></a>'
+    else:
+        link_line = ""
 
     return (
         f"🎧  <b>NOW PLAYING</b>\n\n"
@@ -23,6 +39,7 @@ def now_playing_card(title, artist="Unknown", duration=0, position=0,
         f"🎤  <i>{truncate(artist, 32)}</i>{req}\n\n"
         f"<code>{bar}</code>  <b>{pct}%</b>\n"
         f"⏱  <code>{cur} / {tot}</code>"
+        + link_line
         + _credit()
     )
 
