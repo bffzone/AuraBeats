@@ -1,4 +1,5 @@
 """AuraBeats - Music Service with Auto-Join"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from typing import Optional
 from core import logger
 from services.search import search_youtube

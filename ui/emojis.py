@@ -1,4 +1,5 @@
 """AuraBeats - Emoji Manager"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 import random
 
 PREMIUM_EMOJI = {

@@ -1,4 +1,5 @@
 """AuraBeats - Queue commands"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from pyrogram import Client, filters
 from pyrogram.types import Message, CallbackQuery
 from pyrogram.enums import ParseMode

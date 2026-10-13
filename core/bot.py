@@ -1,4 +1,5 @@
 """AuraBeats - Main Bot"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from pyrogram import Client
 from config import config, logger, WATERMARK, verify_credits
 from core.database import db

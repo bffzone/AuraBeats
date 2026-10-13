@@ -1,4 +1,5 @@
 """AuraBeats - /start, /help, /ping"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 import time
 import os
 from pyrogram import Client, filters

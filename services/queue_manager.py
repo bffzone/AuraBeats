@@ -1,4 +1,5 @@
 """AuraBeats - Queue Manager with auto-play card"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from typing import Optional, List
 from core import db, logger
 from config import config, QueueFull

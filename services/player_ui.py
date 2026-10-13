@@ -1,4 +1,5 @@
 """AuraBeats - Player UI (Live Progress + Pause Support)"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 import os
 import time
 import asyncio

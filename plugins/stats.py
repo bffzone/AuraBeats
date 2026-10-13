@@ -1,4 +1,5 @@
 """AuraBeats - Stats Commands"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from pyrogram import Client, filters
 from pyrogram.types import Message, LinkPreviewOptions
 from pyrogram.enums import ParseMode

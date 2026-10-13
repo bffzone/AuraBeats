@@ -1,4 +1,5 @@
 """AuraBeats - Sleek Modern Progress Bars"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 
 
 def progress_bar(current: int, total: int, length: int = 12) -> str:

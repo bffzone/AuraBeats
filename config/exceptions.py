@@ -1,4 +1,5 @@
 """
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 AuraBeats - Custom Exceptions
 """
 

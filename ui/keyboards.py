@@ -1,4 +1,5 @@
 """AuraBeats - Premium Inline Keyboards"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from pyrogram.types import InlineKeyboardMarkup
 from ui.buttons import btn
 

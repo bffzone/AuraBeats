@@ -1,4 +1,5 @@
 """AuraBeats - Config Package"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from config.settings import config, Config
 from config.logger import logger
 from config.credits import (

@@ -1,4 +1,5 @@
 """AuraBeats - Extras"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from pyrogram import Client, filters
 from pyrogram.types import Message, CallbackQuery, LinkPreviewOptions
 from pyrogram.enums import ParseMode

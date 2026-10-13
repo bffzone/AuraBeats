@@ -1,4 +1,5 @@
 """AuraBeats - Voice Chat Engine"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from typing import Optional
 from pyrogram import Client
 from pytgcalls import PyTgCalls

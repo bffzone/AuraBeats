@@ -1,4 +1,5 @@
 """AuraBeats - Fast YouTube Search (with cache)"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 from typing import Optional, List
 import yt_dlp
 from config import logger, SearchError

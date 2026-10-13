@@ -1,4 +1,5 @@
 """AuraBeats - /play (fast async search)"""
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import LinkPreviewOptions
