@@ -1,5 +1,6 @@
-"""AuraBeats - /play with auto-join"""
+"""AuraBeats - /play with live search + queue thumbnails"""
 import os
+import asyncio
 import aiohttp
 from pyrogram import Client, filters
 from pyrogram.types import LinkPreviewOptions
@@ -33,19 +34,42 @@ async def download_thumb(url: str, path: str) -> bool:
     return False
 
 
+async def live_search(msg, query: str):
+    """Animated searching message"""
+    frames = [
+        f"🔍 <b>Searching</b> <code>{query}</code> .",
+        f"🔍 <b>Searching</b> <code>{query}</code> ..",
+        f"🔍 <b>Searching</b> <code>{query}</code> ...",
+    ]
+    for f in frames:
+        try:
+            await msg.edit_text(f, parse_mode=ParseMode.HTML)
+        except Exception:
+            pass
+        await asyncio.sleep(0.6)
+
+
 @Client.on_message(filters.command("play", prefixes=PREFIXES) & ~filters.private)
 async def play_cmd(client: Client, message):
     if len(message.command) < 2:
         return await message.reply_text(
             "❌ <b>Usage:</b> <code>.play &lt;song&gt;</code>",
             parse_mode=ParseMode.HTML,
+            link_preview_options=LinkPreviewOptions(is_disabled=True),
         )
 
     query = message.text.split(None, 1)[1].strip()
     msg = await message.reply_text(
         f"🔍 <b>Searching</b> <code>{query}</code>...",
         parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
+
+    # Live search animation
+    try:
+        asyncio.create_task(live_search(msg, query))
+    except Exception:
+        pass
 
     try:
         track = search_youtube(query)
@@ -53,39 +77,82 @@ async def play_cmd(client: Client, message):
         return await msg.edit_text(
             error_card(f"Search failed: {str(e)[:100]}"),
             parse_mode=ParseMode.HTML,
+            link_preview_options=LinkPreviewOptions(is_disabled=True),
         )
 
     if not track:
         return await msg.edit_text(
             error_card("No results found 😕"),
             parse_mode=ParseMode.HTML,
+            link_preview_options=LinkPreviewOptions(is_disabled=True),
         )
 
     user = message.from_user
     user_name = user.first_name if user else "User"
     music = MusicService(message.chat.id)
+    chat_id = message.chat.id
 
     try:
-        current = get_current(message.chat.id)
+        current = get_current(chat_id)
         from core import get_calls_manager
         calls = get_calls_manager()
-        is_playing = current and message.chat.id in calls.active_chats
+        is_playing = current and chat_id in calls.active_chats
 
+        # ─── Queue Me Add Karo ───
         if is_playing:
             pos = await add_to_queue(
-                message.chat.id, track,
+                chat_id, track,
                 user.id if user else 0,
                 user_name,
             )
-            await msg.edit_text(
-                f"✅ <b>Added to Queue</b> <code>#{pos + 1}</code>\n"
-                f"🎵 {track['title'][:50]}",
-                parse_mode=ParseMode.HTML,
-                link_preview_options=LinkPreviewOptions(is_disabled=True),
+
+            try:
+                await msg.delete()
+            except Exception:
+                pass
+
+            thumb_url = get_thumb_url(track)
+            thumb_path = f"/tmp/qthumb_{track.get('video_id', 'x')}.jpg"
+            caption = (
+                f"✅ <b>Added to Queue</b> <code>#{pos + 1}</code>\n\n"
+                f"🎵 <b>{track['title'][:45]}</b>\n"
+                f"🎤 <i>{track['artist'][:30]}</i>"
             )
+
+            sent = False
+            if thumb_url and await download_thumb(thumb_url, thumb_path):
+                try:
+                    await client.send_photo(
+                        chat_id=chat_id,
+                        photo=thumb_path,
+                        caption=caption,
+                        parse_mode=ParseMode.HTML,
+                    )
+                    sent = True
+                except Exception as e:
+                    logger.debug(f"Queue photo failed: {e}")
+                finally:
+                    try:
+                        os.remove(thumb_path)
+                    except Exception:
+                        pass
+
+            if not sent:
+                await client.send_message(
+                    chat_id=chat_id,
+                    text=caption,
+                    parse_mode=ParseMode.HTML,
+                    link_preview_options=LinkPreviewOptions(is_disabled=True),
+                )
+
+        # ─── First Time Play ───
         else:
-            # Auto-add assistant before playing
             await music.play_now(track, bot_client=client)
+
+            try:
+                await msg.delete()
+            except Exception:
+                pass
 
             card_text = now_playing_card(
                 title=track["title"],
@@ -94,49 +161,29 @@ async def play_cmd(client: Client, message):
                 requested_by=user_name,
             )
 
-            try:
-                await msg.delete()
-            except Exception:
-                pass
-
-            chat_id = message.chat.id
             thumb_url = get_thumb_url(track)
             thumb_path = f"/tmp/thumb_{track.get('video_id', 'x')}.jpg"
 
-            photo_sent = False
-            if thumb_url:
-                if await download_thumb(thumb_url, thumb_path):
+            sent = False
+            if thumb_url and await download_thumb(thumb_url, thumb_path):
+                try:
+                    await client.send_photo(
+                        chat_id=chat_id,
+                        photo=thumb_path,
+                        caption=card_text,
+                        reply_markup=player_keyboard(),
+                        parse_mode=ParseMode.HTML,
+                    )
+                    sent = True
+                except Exception as e:
+                    logger.debug(f"Photo failed: {e}")
+                finally:
                     try:
-                        await client.send_photo(
-                            chat_id=chat_id,
-                            photo=thumb_path,
-                            caption=card_text,
-                            reply_markup=player_keyboard(),
-                            parse_mode=ParseMode.HTML,
-                        )
-                        photo_sent = True
-                    except Exception as e:
-                        logger.debug(f"Local photo failed: {e}")
-                    finally:
-                        try:
-                            os.remove(thumb_path)
-                        except Exception:
-                            pass
+                        os.remove(thumb_path)
+                    except Exception:
+                        pass
 
-                if not photo_sent:
-                    try:
-                        await client.send_photo(
-                            chat_id=chat_id,
-                            photo=thumb_url,
-                            caption=card_text,
-                            reply_markup=player_keyboard(),
-                            parse_mode=ParseMode.HTML,
-                        )
-                        photo_sent = True
-                    except Exception as e:
-                        logger.debug(f"URL photo failed: {e}")
-
-            if not photo_sent:
+            if not sent:
                 await client.send_message(
                     chat_id=chat_id,
                     text=card_text,
@@ -151,12 +198,13 @@ async def play_cmd(client: Client, message):
         if "CHANNEL_INVALID" in err or "PEER_ID_INVALID" in err:
             await msg.edit_text(
                 "<b>❌  Assistant not in group</b>\n\n"
-                "Send <code>/addassistant</code> to fix.\n"
-                "<i>(Bot needs 'Add Users' admin permission)</i>",
+                "Send <code>/addassistant</code> to fix.",
                 parse_mode=ParseMode.HTML,
+                link_preview_options=LinkPreviewOptions(is_disabled=True),
             )
         else:
             await msg.edit_text(
                 error_card(err[:150]),
                 parse_mode=ParseMode.HTML,
+                link_preview_options=LinkPreviewOptions(is_disabled=True),
             )
