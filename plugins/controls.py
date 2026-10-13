@@ -208,27 +208,40 @@ async def cb_filter_apply(client, query):
     fname = query.matches[0].group(1)
     chat_id = query.message.chat.id
 
-    # Clear filter
+    # ─── Clear filter ───
     if fname == "clear":
         from services.filter_state import clear_filter
         clear_filter(chat_id)
-        await query.answer("❌ All filters cleared")
+        try:
+            await query.answer("❌ All filters cleared")
+        except Exception:
+            pass
         return
 
-    # Validate filter
+    # ─── Validate filter ───
     from filters.builder import build_filter, get_filter_display_name
     filter_str = build_filter(fname)
     if not filter_str:
-        return await query.answer(f"❌ Unknown filter: {fname}", show_alert=True)
+        try:
+            await query.answer(f"❌ Unknown filter: {fname}", show_alert=True)
+        except Exception:
+            pass
+        return
 
-    # Set filter state
+    # ─── Set filter state ───
     from services.filter_state import set_filter
     set_filter(chat_id, fname)
 
-    # Re-apply current track with filter
+    # ─── ANSWER QUERY FIRST (before long ops!) ───
+    display = get_filter_display_name(fname)
+    try:
+        await query.answer(f"🎛️ {display} applied ✓")
+    except Exception as e:
+        logger.debug(f"query.answer failed: {e}")
+
+    # ─── THEN apply filter (long operation) ───
     current = queue_manager.get_current(chat_id)
     if not current:
-        await query.answer(f"🎛️ {get_filter_display_name(fname)} set for next track")
         return
 
     try:
@@ -236,13 +249,9 @@ async def cb_filter_apply(client, query):
         url = get_stream_url(current["url"], video_id=current.get("video_id"))
         calls = _calls()
         await calls.play(chat_id, url, filter_name=fname)
-
-        display = get_filter_display_name(fname)
-        await query.answer(f"🎛️ {display} applied ✓")
         logger.info(f"Filter '{fname}' applied in {chat_id}")
     except Exception as e:
         logger.error(f"Filter apply failed: {e}")
-        await query.answer(f"⚠️ {fname} set (couldn't re-apply live)")
 
 
 # ═══════════════════════════════════════
