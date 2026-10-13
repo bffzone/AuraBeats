@@ -4,7 +4,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message, CallbackQuery, LinkPreviewOptions
 from pyrogram.enums import ParseMode
 
-from config import config
+from config import config, AUTHOR_NAME, AUTHOR_TG_LINK
 from services.user import UserService
 from ui.keyboards import settings_keyboard
 from ui.cards import success_card
@@ -19,6 +19,10 @@ def _html_kwargs():
     }
 
 
+def _credit() -> str:
+    return f'\n\n<a href="{AUTHOR_TG_LINK}"><b>Made By {AUTHOR_NAME}</b></a>'
+
+
 @Client.on_message(filters.command("settings", prefixes=PREFIXES))
 async def settings_cmd(client, message):
     user = message.from_user
@@ -27,7 +31,8 @@ async def settings_cmd(client, message):
     await UserService.get_or_create(user.id, user.first_name, user.username or "")
     await message.reply_text(
         f"⚙️ <b>Settings for {user.first_name}</b>\n\n"
-        f"Customize your {config.BOT_NAME} experience.",
+        f"Customize your {config.BOT_NAME} experience."
+        + _credit(),
         reply_markup=settings_keyboard(),
         **_html_kwargs()
     )
