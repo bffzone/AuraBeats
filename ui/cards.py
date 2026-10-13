@@ -1,3 +1,4 @@
+# Watermark: @AuraBeatsOfficial | @Vip_Sakil_Bio
 """AuraBeats - Minimal Cards"""
 from config import config, AUTHOR_NAME, AUTHOR_TG_LINK
 from ui.progress import progress_bar, progress_percent
