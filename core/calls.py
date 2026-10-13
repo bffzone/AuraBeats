@@ -31,7 +31,7 @@ class CallsManager:
                 self.active_chats.discard(chat_id)
                 try:
                     from services.queue_manager import play_next
-                    await play_next(chat_id)
+                    await play_next(chat_id, self.bot)   # ← bot_client pass
                 except Exception as e:
                     logger.debug(f"Auto-next: {e}")
         except Exception as e:
