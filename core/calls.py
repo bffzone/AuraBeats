@@ -29,9 +29,13 @@ class CallsManager:
             if update.__class__.__name__ == "StreamEnd":
                 chat_id = update.chat_id
                 self.active_chats.discard(chat_id)
+
+                from services.player_ui import stop_progress
+                stop_progress(chat_id)
+
                 try:
                     from services.queue_manager import play_next
-                    await play_next(chat_id, self.bot)   # ← bot_client pass
+                    await play_next(chat_id, self.bot)
                 except Exception as e:
                     logger.debug(f"Auto-next: {e}")
         except Exception as e:
