@@ -1,6 +1,9 @@
 """AuraBeats - Player Controls & Callbacks"""
 from pyrogram import Client, filters
-from pyrogram.types import Message, CallbackQuery, LinkPreviewOptions
+from pyrogram.types import (
+    Message, CallbackQuery, LinkPreviewOptions,
+    InlineKeyboardMarkup, InlineKeyboardButton,
+)
 from pyrogram.enums import ParseMode
 from config import config
 from ui.keyboards import (
@@ -20,6 +23,14 @@ def _calls():
 
 def _html_kwargs():
     return {"parse_mode": ParseMode.HTML, "link_preview_options": LinkPreviewOptions(is_disabled=True)}
+
+
+def _stopped_kb():
+    """Restart player keyboard after stop"""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎵 Play New Song", callback_data="cb_help_play")],
+        [InlineKeyboardButton("❌ Close", callback_data="cb_close")],
+    ])
 
 
 @Client.on_message(filters.command("pause", prefixes=PREFIXES) & ~filters.private)
@@ -42,15 +53,11 @@ async def resume_cmd(client, message):
 
 @Client.on_message(filters.command("skip", prefixes=PREFIXES) & ~filters.private)
 async def skip_cmd(client, message):
-    # Pehle check karo queue khaali to nahi
     q = await queue_manager.get_queue(message.chat.id)
     if not q:
         return await message.reply_text(error_card("Queue is empty"), **_html_kwargs())
 
-    # 1. Pehle "Skipped" message bhejo
     await message.reply_text(success_card("⏭️ Skipped"), **_html_kwargs())
-
-    # 2. Phir next song play karo (card automatically aayega)
     await queue_manager.skip_current(message.chat.id, client)
 
 
@@ -60,7 +67,11 @@ async def stop_cmd(client, message):
         stop_progress(message.chat.id)
         await _calls().stop(message.chat.id)
         await queue_manager.clear_queue(message.chat.id)
-        await message.reply_text(success_card("⏹️ Stopped"), **_html_kwargs())
+        await message.reply_text(
+            "<b>⏹️ Stopped</b>\n\nUse <code>/play song</code> to start again.",
+            reply_markup=_stopped_kb(),
+            **_html_kwargs()
+        )
     except Exception as e:
         await message.reply_text(error_card(str(e)[:100]), **_html_kwargs())
 
@@ -80,15 +91,11 @@ async def cb_pause_resume(client, query):
 
 @Client.on_callback_query(filters.regex("^cb_skip$"))
 async def cb_skip(client, query):
-    # Pehle check karo queue khaali to nahi
     q = await queue_manager.get_queue(query.message.chat.id)
     if not q:
         return await query.answer("Queue is empty", show_alert=True)
 
-    # 1. Pehle "Skipped" alert dikhao
     await query.answer("⏭️ Skipped")
-
-    # 2. Phir next song play karo (card automatically aayega)
     await queue_manager.skip_current(query.message.chat.id, client)
 
 
@@ -98,7 +105,11 @@ async def cb_stop(client, query):
         stop_progress(query.message.chat.id)
         await _calls().stop(query.message.chat.id)
         await queue_manager.clear_queue(query.message.chat.id)
-        await query.message.edit_text(success_card("⏹️ Stopped"), **_html_kwargs())
+        await query.message.edit_text(
+            "<b>⏹️ Stopped</b>\n\nUse <code>/play song</code> to start again.",
+            reply_markup=_stopped_kb(),
+            **_html_kwargs()
+        )
     except Exception as e:
         await query.answer(str(e)[:50], show_alert=True)
 
