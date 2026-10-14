@@ -1,0 +1,77 @@
+# ═══════════════════════════════════════
+#   AuraBeats - Docker Compose
+#   Author: AuraBeatsOfficial (@Vip_Sakil_Bio)
+# ═══════════════════════════════════════
+
+version: '3.8'
+
+services:
+  # ─── Main Bot ───
+  aurabeats:
+    build: .
+    container_name: aurabeats
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+      - redis
+      - pot-server
+    volumes:
+      - ./data:/app/data
+      - ./assets:/app/assets
+      - ./cookies.txt:/app/cookies.txt:ro
+    networks:
+      - aurabeats-net
+    environment:
+      - MONGO_URI=mongodb://admin:${MONGO_PASSWORD:-changeme}@mongodb:27017/aurobeats?authSource=admin
+      - REDIS_URI=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
+    ports:
+      - "8080:8080"
+
+  # ─── MongoDB ───
+  mongodb:
+    image: mongo:7
+    container_name: aurabeats-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-changeme}
+      MONGO_INITDB_DATABASE: aurabeats
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - aurabeats-net
+    ports:
+      - "27017:27017"
+
+  # ─── Redis ───
+  redis:
+    image: redis:7-alpine
+    container_name: aurabeats-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis_data:/data
+    networks:
+      - aurabeats-net
+    ports:
+      - "6379:6379"
+
+  # ─── POT Server (YouTube bypass) ───
+  pot-server:
+    image: brainicism/bgutil-ytdlp-pot-provider:latest
+    container_name: aurabeats-pot
+    restart: unless-stopped
+    networks:
+      - aurabeats-net
+    ports:
+      - "4416:4416"
+
+networks:
+  aurabeats-net:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  redis_data:
